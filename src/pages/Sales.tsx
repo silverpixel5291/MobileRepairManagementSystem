@@ -6,6 +6,7 @@ import { PaymentMethod } from '../data/mockData';
 
 export function Sales({ store }: { store: Store }) {
   const [search, setSearch] = useState('');
+  const [itemSearch, setItemSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({
     customerId: '', customerName: '', items: [] as { inventoryId: string; name: string; quantity: number; unitPrice: number; total: number }[],
@@ -142,9 +143,38 @@ export function Sales({ store }: { store: Store }) {
 
           <div className="border-t border-navy-100 pt-4">
             <p className="text-sm font-semibold text-navy-800 mb-3">Add Items</p>
+            <div className="mb-3">
+              <div className="flex items-center gap-2 bg-navy-50 rounded-lg px-3 py-2 border border-navy-200 focus-within:border-primary-400 focus-within:ring-2 focus-within:ring-primary-100 mb-2">
+                <Search size={16} className="text-navy-400" />
+                <input 
+                  type="text" 
+                  value={itemSearch} 
+                  onChange={e => setItemSearch(e.target.value)} 
+                  placeholder="Search items by name or scan QR..." 
+                  className="bg-transparent border-none outline-none text-sm text-navy-700 placeholder-navy-400 w-full" 
+                />
+              </div>
+              {itemSearch && (
+                <div className="max-h-40 overflow-y-auto border border-navy-100 rounded-lg mb-2">
+                  {availableItems.filter(i => i.name.toLowerCase().includes(itemSearch.toLowerCase())).slice(0, 6).map(item => (
+                    <button 
+                      key={item.id} 
+                      onClick={() => { setForm({ ...form, selectedItem: item.id }); setItemSearch(''); }} 
+                      className="w-full flex items-center justify-between px-3 py-2 hover:bg-primary-50 text-left text-sm border-b border-navy-50 last:border-0"
+                    >
+                      <span className="text-navy-700">{item.name}</span>
+                      <span className="text-navy-500">₹{item.sellingPrice} <span className="text-xs">(Qty: {item.quantity})</span></span>
+                    </button>
+                  ))}
+                  {availableItems.filter(i => i.name.toLowerCase().includes(itemSearch.toLowerCase())).length === 0 && (
+                    <p className="p-3 text-sm text-navy-400 text-center">No items found</p>
+                  )}
+                </div>
+              )}
+            </div>
             <div className="flex gap-2 mb-3">
               <select value={form.selectedItem} onChange={e => setForm({ ...form, selectedItem: e.target.value })} className={`${selectClass} flex-1`}>
-                <option value="">Select item...</option>
+                <option value="">Or select from list...</option>
                 {availableItems.map(i => <option key={i.id} value={i.id}>{i.name} — ₹{i.sellingPrice} (Qty: {i.quantity})</option>)}
               </select>
               <input type="number" value={form.quantity} onChange={e => setForm({ ...form, quantity: Number(e.target.value) })} min={1} className={`${inputClass} w-20`} placeholder="Qty" />

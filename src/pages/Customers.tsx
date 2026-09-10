@@ -7,7 +7,7 @@ export function Customers({ store }: { store: Store }) {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ name: '', phone: '', email: '', address: '', gstin: '', type: 'individual' as 'individual' | 'business' });
+  const [form, setForm] = useState({ name: '', phone: '', email: '', address: '', gstin: '', type: 'individual' as 'individual' | 'business', birthday: '' });
 
   const filtered = store.customers.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) || c.phone.includes(search);
@@ -18,7 +18,7 @@ export function Customers({ store }: { store: Store }) {
   const handleSubmit = () => {
     if (!form.name || !form.phone) return;
     store.addCustomer(form);
-    setForm({ name: '', phone: '', email: '', address: '', gstin: '', type: 'individual' });
+    setForm({ name: '', phone: '', email: '', address: '', gstin: '', type: 'individual', birthday: '' });
     setShowAdd(false);
   };
 
@@ -96,14 +96,20 @@ export function Customers({ store }: { store: Store }) {
           </FormRow>
           <FormRow>
             <FormField label="Email">
-              <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="email@example.com" className={inputClass} />
+              <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="email@example.com (optional)" className={inputClass} />
             </FormField>
+            <FormField label="Birthday">
+              <input type="date" value={form.birthday} onChange={e => setForm({ ...form, birthday: e.target.value })} className={inputClass} />
+            </FormField>
+          </FormRow>
+          <FormRow>
             <FormField label="Customer Type">
               <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value as 'individual' | 'business' })} className={selectClass}>
                 <option value="individual">Individual</option>
                 <option value="business">Business</option>
               </select>
             </FormField>
+            <div></div>
           </FormRow>
           <FormField label="Address">
             <input type="text" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} placeholder="Full address" className={inputClass} />

@@ -5,6 +5,8 @@ import { technicians } from '../data/mockData';
 
 export function TechnicianFloor({ store }: { store: Store }) {
   const [selectedTech, setSelectedTech] = useState('tech1');
+  const [showNoteModal, setShowNoteModal] = useState<string | null>(null);
+  const [noteText, setNoteText] = useState('');
 
   const myJobs = store.repairs.filter(j => j.assignedTo === selectedTech);
   const working = myJobs.filter(j => j.status === 'working').length;
@@ -85,9 +87,26 @@ export function TechnicianFloor({ store }: { store: Store }) {
               </div>
               {action && (
                 <div className="mt-3 pt-3 border-t border-navy-100/50 flex items-center gap-2">
-                  <button className={`flex items-center gap-1.5 px-4 py-2 ${action.color} text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity`}>{action.label}<ChevronRight size={14} /></button>
-                  <button className="px-3 py-2 bg-white border border-navy-200 rounded-lg text-sm text-navy-600 hover:bg-navy-50">Add Note</button>
-                  <button className="px-3 py-2 bg-white border border-navy-200 rounded-lg text-sm text-navy-600 hover:bg-navy-50">📷 Photo</button>
+                  <button 
+                    onClick={() => {
+                      store.showToast(`Status updated: ${action.label}`, 'success');
+                    }}
+                    className={`flex items-center gap-1.5 px-4 py-2 ${action.color} text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity`}
+                  >
+                    {action.label}<ChevronRight size={14} />
+                  </button>
+                  <button 
+                    onClick={() => { setShowNoteModal(job.id); setNoteText(''); }}
+                    className="px-3 py-2 bg-white border border-navy-200 rounded-lg text-sm text-navy-600 hover:bg-navy-50"
+                  >
+                    Add Note
+                  </button>
+                  <button 
+                    onClick={() => store.showToast('Photo upload would open camera', 'info')}
+                    className="px-3 py-2 bg-white border border-navy-200 rounded-lg text-sm text-navy-600 hover:bg-navy-50"
+                  >
+                    📷 Photo
+                  </button>
                 </div>
               )}
             </div>
@@ -97,6 +116,38 @@ export function TechnicianFloor({ store }: { store: Store }) {
           <div className="text-center py-12 bg-white rounded-xl border border-navy-100"><CheckCircle size={48} className="mx-auto text-mint-300 mb-3" /><p className="text-navy-500">No jobs assigned. All caught up!</p></div>
         )}
       </div>
+
+      {/* Note Modal */}
+      {showNoteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowNoteModal(null)} />
+          <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-5 animate-fade-in">
+            <h3 className="text-lg font-bold text-navy-900 mb-3">Add Note</h3>
+            <textarea 
+              value={noteText}
+              onChange={e => setNoteText(e.target.value)}
+              placeholder="Enter your note..."
+              rows={4}
+              className="w-full px-3 py-2 border border-navy-200 rounded-lg text-sm outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 resize-none"
+            />
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => setShowNoteModal(null)} className="px-4 py-2 bg-navy-100 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-200">Cancel</button>
+              <button 
+                onClick={() => {
+                  if (noteText.trim()) {
+                    store.showToast('Note added successfully', 'success');
+                    setShowNoteModal(null);
+                    setNoteText('');
+                  }
+                }}
+                className="px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600"
+              >
+                Save Note
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

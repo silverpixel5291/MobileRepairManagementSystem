@@ -18,9 +18,25 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const store = useStore();
 
+  const handleScan = (token: string) => {
+    const item = store.inventory.find(i => i.deviceId === token || i.qrToken === token);
+    if (item) {
+      store.showToast(`Found: ${item.name} (${item.deviceId})`, 'info');
+    } else {
+      store.showToast(`No item found for "${token}"`, 'error');
+    }
+  };
+
   return (
     <HashRouter>
-      <Layout sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+      <Layout
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        inventory={store.inventory}
+        customers={store.customers}
+        onQuickSale={(data) => store.addSale(data)}
+        onScan={handleScan}
+      >
         <Routes>
           <Route path="/" element={<Dashboard store={store} />} />
           <Route path="/inventory" element={<Inventory store={store} />} />

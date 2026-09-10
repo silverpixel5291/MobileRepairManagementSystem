@@ -1,16 +1,20 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Wrench, Users, ShoppingCart,
   Store, Trash2, BarChart3, Settings, Bell, Search,
   QrCode, Menu, X, Plus, Zap, User
 } from 'lucide-react';
-import { notifications } from '../data/mockData';
+import { ScanModal, NotificationsPanel, ProfileMenu, QuickSaleModal } from './GlobalActions';
 
 interface LayoutProps {
   children: ReactNode;
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
+  inventory?: any[];
+  customers?: any[];
+  onQuickSale?: (data: any) => void;
+  onScan?: (token: string) => void;
 }
 
 const navItems = [
@@ -26,8 +30,12 @@ const navItems = [
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
 
-export function Layout({ children, sidebarOpen, setSidebarOpen }: LayoutProps) {
-  const unreadCount = notifications.filter(n => !n.read).length;
+export function Layout({ children, sidebarOpen, setSidebarOpen, inventory = [], customers = [], onQuickSale, onScan }: LayoutProps) {
+  const [showScan, setShowScan] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showQuickSale, setShowQuickSale] = useState(false);
+  const unreadCount = 3; // Mock unread count
 
   return (
     <div className="min-h-screen bg-navy-50 flex">
@@ -137,15 +145,15 @@ export function Layout({ children, sidebarOpen, setSidebarOpen }: LayoutProps) {
             </div>
 
             <div className="flex items-center gap-2">
-              <button className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors shadow-sm">
+              <button onClick={() => setShowScan(true)} className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors shadow-sm">
                 <QrCode size={16} />
                 <span className="hidden md:inline">Scan QR</span>
               </button>
-              <button className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-mint-500 text-white rounded-lg text-sm font-medium hover:bg-mint-600 transition-colors shadow-sm">
+              <button onClick={() => setShowQuickSale(true)} className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-mint-500 text-white rounded-lg text-sm font-medium hover:bg-mint-600 transition-colors shadow-sm">
                 <Plus size={16} />
                 <span className="hidden md:inline">Quick Sale</span>
               </button>
-              <button className="relative p-2 hover:bg-navy-50 rounded-lg">
+              <button onClick={() => setShowNotifications(true)} className="relative p-2 hover:bg-navy-50 rounded-lg">
                 <Bell size={20} className="text-navy-600" />
                 {unreadCount > 0 && (
                   <span className="absolute top-1 right-1 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
@@ -153,11 +161,11 @@ export function Layout({ children, sidebarOpen, setSidebarOpen }: LayoutProps) {
                   </span>
                 )}
               </button>
-              <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-navy-100 ml-1">
+              <button onClick={() => setShowProfile(!showProfile)} className="hidden sm:flex items-center gap-2 pl-2 border-l border-navy-100 ml-1">
                 <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
                   <User size={16} className="text-primary-600" />
                 </div>
-              </div>
+              </button>
             </div>
           </div>
         </header>
@@ -187,6 +195,21 @@ export function Layout({ children, sidebarOpen, setSidebarOpen }: LayoutProps) {
           </div>
         </nav>
       </div>
+
+      {/* Global Action Modals */}
+      <ScanModal open={showScan} onClose={() => setShowScan(false)} onScan={onScan} />
+      <NotificationsPanel open={showNotifications} onClose={() => setShowNotifications(false)} />
+      <ProfileMenu open={showProfile} onClose={() => setShowProfile(false)} />
+      <QuickSaleModal
+        open={showQuickSale}
+        onClose={() => setShowQuickSale(false)}
+        inventory={inventory}
+        customers={customers}
+        onSale={(data) => {
+          if (onQuickSale) onQuickSale(data);
+          setShowQuickSale(false);
+        }}
+      />
     </div>
   );
 }

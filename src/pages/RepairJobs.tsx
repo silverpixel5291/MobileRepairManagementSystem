@@ -13,6 +13,7 @@ export function RepairJobs({ store }: { store: Store }) {
     problem: '', priority: 'medium' as Priority, status: 'received' as RepairStatus,
     estimate: 0, assignedTo: '', assignedToName: '', internalNotes: '',
   });
+  const [createNewCustomer, setCreateNewCustomer] = useState(false);
 
   const filtered = store.repairs.filter(j => statusFilter === 'all' || j.status === statusFilter);
 
@@ -56,8 +57,24 @@ export function RepairJobs({ store }: { store: Store }) {
 
   const handleSubmit = () => {
     if (!form.customerName || !form.customerPhone || !form.problem) return;
-    store.addRepair(form);
+    
+    // If creating new customer, add them first
+    let customerId = form.customerId;
+    if (createNewCustomer) {
+      const newCustomer = store.addCustomer({
+        name: form.customerName,
+        phone: form.customerPhone,
+        email: '',
+        address: '',
+        gstin: '',
+        type: 'individual',
+      });
+      customerId = newCustomer.id;
+    }
+    
+    store.addRepair({ ...form, customerId });
     setForm({ customerId: '', customerName: '', customerPhone: '', deviceId: '', deviceName: '', problem: '', priority: 'medium', status: 'received', estimate: 0, assignedTo: '', assignedToName: '', internalNotes: '' });
+    setCreateNewCustomer(false);
     setShowAdd(false);
   };
 
@@ -168,20 +185,39 @@ export function RepairJobs({ store }: { store: Store }) {
       {/* New Repair Job Modal */}
       <Modal open={showAdd} onClose={() => setShowAdd(false)} title="New Repair Job" subtitle="Create a repair ticket for a customer device">
         <div className="space-y-4">
-          <FormField label="Customer" required>
-            <select value={form.customerId} onChange={e => handleCustomerSelect(e.target.value)} className={selectClass}>
-              <option value="">Select existing customer...</option>
-              {store.customers.map(c => <option key={c.id} value={c.id}>{c.name} — {c.phone}</option>)}
-            </select>
-          </FormField>
-          <FormRow>
-            <FormField label="Customer Name" required>
-              <input type="text" value={form.customerName} onChange={e => setForm({ ...form, customerName: e.target.value })} placeholder="Walk-in customer name" className={inputClass} />
-            </FormField>
-            <FormField label="Phone Number" required>
-              <input type="tel" value={form.customerPhone} onChange={e => setForm({ ...form, customerPhone: e.target.value })} placeholder="+91 XXXXX XXXXX" className={inputClass} />
-            </FormField>
-          </FormRow>
+          <div className="bg-navy-50 rounded-lg p-3 mb-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-navy-700">Customer</span>
+              <button type="button" onClick={() => setCreateNewCustomer(!createNewCustomer)} className="text-xs text-primary-600 font-medium hover:text-primary-700">
+                {createNewCustomer ? '← Select existing' : '+ Create new'}
+              </button>
+            </div>
+            {createNewCustomer ? (
+              <FormRow>
+                <FormField label="Name" required>
+                  <input type="text" value={form.customerName} onChange={e => setForm({ ...form, customerName: e.target.value })} placeholder="Customer name" className={inputClass} />
+                </FormField>
+                <FormField label="Phone" required>
+                  <input type="tel" value={form.customerPhone} onChange={e => setForm({ ...form, customerPhone: e.target.value })} placeholder="+91 XXXXX XXXXX" className={inputClass} />
+                </FormField>
+              </FormRow>
+            ) : (
+              <select value={form.customerId} onChange={e => handleCustomerSelect(e.target.value)} className={selectClass}>
+                <option value="">Select existing customer...</option>
+                {store.customers.map(c => <option key={c.id} value={c.id}>{c.name} — {c.phone}</option>)}
+              </select>
+            )}
+          </div>
+          {!createNewCustomer && (
+            <FormRow>
+              <FormField label="Customer Name" required>
+                <input type="text" value={form.customerName} onChange={e => setForm({ ...form, customerName: e.target.value })} placeholder="Walk-in customer name" className={inputClass} />
+              </FormField>
+              <FormField label="Phone Number" required>
+                <input type="tel" value={form.customerPhone} onChange={e => setForm({ ...form, customerPhone: e.target.value })} placeholder="+91 XXXXX XXXXX" className={inputClass} />
+              </FormField>
+            </FormRow>
+          )}
           <FormRow>
             <FormField label="Device Name">
               <input type="text" value={form.deviceName} onChange={e => setForm({ ...form, deviceName: e.target.value })} placeholder="e.g. iPhone 13" className={inputClass} />

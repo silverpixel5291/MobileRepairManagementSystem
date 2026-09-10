@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Search, Plus, QrCode, MoreVertical, Package, Smartphone, Cable, Cpu } from 'lucide-react';
 import { Modal, FormField, FormRow, inputClass, selectClass, SubmitButton, Toggle } from '../components/Modal';
+import { QRCodeDisplay, ScanModal } from '../components/GlobalActions';
 import { Store } from '../store/useStore';
 import { InventoryItem, ItemCategory, InventoryStatus } from '../data/mockData';
 
@@ -10,6 +11,8 @@ export function Inventory({ store }: { store: Store }) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [showQR, setShowQR] = useState<InventoryItem | null>(null);
+  const [showScan, setShowScan] = useState(false);
   const [nullImei, setNullImei] = useState(false);
   const [form, setForm] = useState({
     name: '', category: 'mobile' as ItemCategory, brand: '', model: '', imei: '',
@@ -63,7 +66,7 @@ export function Inventory({ store }: { store: Store }) {
           <p className="text-sm text-navy-500">{store.inventory.length} items tracked</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1.5 px-3 py-2 bg-white border border-navy-200 rounded-lg text-sm text-navy-700 hover:bg-navy-50">
+          <button onClick={() => setShowScan(true)} className="flex items-center gap-1.5 px-3 py-2 bg-white border border-navy-200 rounded-lg text-sm text-navy-700 hover:bg-navy-50">
             <QrCode size={16} /> Scan
           </button>
           <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 shadow-sm">
@@ -126,7 +129,7 @@ export function Inventory({ store }: { store: Store }) {
                     <button className="px-3 py-2 bg-primary-50 text-primary-700 rounded-lg text-sm font-medium hover:bg-primary-100">Sell</button>
                     <button className="px-3 py-2 bg-amber-50 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-100">Send to Repair</button>
                     <button className="px-3 py-2 bg-navy-50 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-100">Transfer</button>
-                    <button className="px-3 py-2 bg-navy-50 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-100">Print QR</button>
+                    <button onClick={() => setShowQR(selectedItem)} className="px-3 py-2 bg-navy-50 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-100 flex items-center justify-center gap-1"><QrCode size={14} /> Print QR</button>
                   </div>
                 </div>
               </div>
@@ -196,6 +199,32 @@ export function Inventory({ store }: { store: Store }) {
       {filtered.length === 0 && (
         <div className="text-center py-12"><Package size={48} className="mx-auto text-navy-200 mb-3" /><p className="text-navy-500">No items found matching your filters.</p></div>
       )}
+
+      {/* QR Code Display Modal */}
+      {showQR && (
+        <QRCodeDisplay
+          deviceId={showQR.deviceId}
+          qrToken={showQR.qrToken}
+          itemName={showQR.name}
+          location={showQR.rack && showQR.box ? `${showQR.rack} / ${showQR.box}` : undefined}
+          onClose={() => setShowQR(null)}
+        />
+      )}
+
+      {/* Scan Modal */}
+      <ScanModal
+        open={showScan}
+        onClose={() => setShowScan(false)}
+        onScan={(token) => {
+          const item = store.inventory.find(i => i.deviceId === token || i.qrToken === token);
+          if (item) {
+            setSelectedItem(item);
+            setShowScan(false);
+          } else {
+            store.showToast(`No item found for "${token}"`, 'error');
+          }
+        }}
+      />
 
       {/* Add Item Modal */}
       <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add Inventory Item" subtitle="Enter item details to add to inventory" size="lg">

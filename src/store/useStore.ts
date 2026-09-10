@@ -117,7 +117,7 @@ export function useStore() {
   }, [showToast]);
 
   return {
-    customers, suppliers, inventory, repairs, sales, scrap, toast,
+    customers, suppliers, inventory, repairs, sales, scrap, toast, showToast,
     addCustomer, addSupplier, addInventory, addRepair, addSale, addScrap,
   };
 }
