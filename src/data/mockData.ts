@@ -11,6 +11,7 @@ export interface Customer {
   email?: string;
   address?: string;
   gstin?: string;
+  birthday?: string;
   type: 'individual' | 'business';
   createdAt: string;
   totalPurchases: number;
