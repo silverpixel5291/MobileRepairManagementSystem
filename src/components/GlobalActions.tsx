@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, QrCode, Bell, User, LogOut, Settings, ShoppingCart, Search, Printer, Camera, Check } from 'lucide-react';
 import { Modal, FormField, FormRow, inputClass, selectClass, SubmitButton } from './Modal';
-import { notifications } from '../data/mockData';
 
 // ============ SCAN MODAL ============
 export function ScanModal({ open, onClose, onScan }: { open: boolean; onClose: () => void; onScan?: (token: string) => void }) {

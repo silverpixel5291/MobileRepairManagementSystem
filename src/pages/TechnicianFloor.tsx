@@ -1,189 +1,13 @@
 import { useState } from 'react';
-import { Wrench, Clock, AlertCircle, CheckCircle, RefreshCw, User, ChevronRight, Camera, ArrowLeft } from 'lucide-react';
+import { Wrench, Clock, AlertCircle, CheckCircle, RefreshCw, User, ChevronRight, Camera } from 'lucide-react';
 import { Store } from '../store/useStore';
-import { technicians, RepairJob } from '../data/mockData';
-
-// Work Screen Component
-function WorkScreen({ 
-  job, 
-  onClose, 
-  store, 
-  techName,
-  onAddNote,
-  onPhoto,
-  getStatusAction,
-  getStatusColor 
-}: {
-  job: RepairJob;
-  onClose: () => void;
-  store: Store;
-  techName: string;
-  onAddNote: () => void;
-  onPhoto: () => void;
-  getStatusAction: (status: string) => { label: string; color: string; nextStatus: string; message: string } | undefined;
-  getStatusColor: (status: string) => string;
-}) {
-  const action = getStatusAction(job.status);
-
-  return (
-    <div className="fixed inset-0 z-[60] bg-navy-50 overflow-y-auto">
-      {/* Header */}
-      <div className="sticky top-0 bg-white border-b border-navy-200 shadow-sm z-10">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={onClose}
-              className="p-2 hover:bg-navy-100 rounded-lg"
-            >
-              <ArrowLeft size={20} className="text-navy-600" />
-            </button>
-            <div>
-              <h2 className="text-lg font-bold text-navy-900">{job.repairNumber}</h2>
-              <p className="text-xs text-navy-500">{job.deviceName || 'No device'}</p>
-            </div>
-          </div>
-          <div className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${getStatusColor(job.status)} border`}>
-            {job.status.replace(/_/g, ' ').toUpperCase()}
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6 pb-20">
-        {/* Repair Info */}
-        <div className="bg-white rounded-xl border border-navy-200 p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-navy-700 mb-3">Repair Details</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs text-navy-500 mb-1">Customer</p>
-              <p className="text-sm font-medium text-navy-900">{job.customerName}</p>
-              <p className="text-xs text-navy-500">{job.customerPhone}</p>
-            </div>
-            <div>
-              <p className="text-xs text-navy-500 mb-1">Priority</p>
-              <p className={`text-sm font-semibold capitalize ${job.priority === 'urgent' ? 'text-rose-600' : job.priority === 'high' ? 'text-amber-600' : 'text-navy-700'}`}>
-                {job.priority}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-navy-500 mb-1">Estimate</p>
-              <p className="text-sm font-semibold text-navy-900">₹{job.estimate?.toLocaleString() || '0'}</p>
-            </div>
-            <div>
-              <p className="text-xs text-navy-500 mb-1">Created</p>
-              <p className="text-sm text-navy-700">{new Date(job.createdAt).toLocaleDateString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</p>
-            </div>
-          </div>
-          <div className="mt-4 pt-4 border-t border-navy-100">
-            <p className="text-xs text-navy-500 mb-1">Problem Description</p>
-            <p className="text-sm text-navy-800">{job.problem}</p>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white rounded-xl border border-navy-200 p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-navy-700 mb-3">Quick Actions</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {action && (
-              <button 
-                onClick={() => {
-                  store.updateRepairStatus(job.id, action.nextStatus, action.message, techName);
-                }}
-                className={`flex items-center justify-center gap-2 px-4 py-3 ${action.color} text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity`}
-              >
-                {action.label}
-              </button>
-            )}
-            <button 
-              onClick={onAddNote}
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-navy-100 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-200"
-            >
-              Add Note
-            </button>
-            <button 
-              onClick={onPhoto}
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-navy-100 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-200"
-            >
-              <Camera size={16} /> Photo
-            </button>
-            <button 
-              onClick={() => {
-                store.addRepairNote(job.id, '📞 Notified boss about this repair', techName);
-                store.showToast('Boss notified successfully', 'success');
-              }}
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600"
-            >
-              🔔 Notify Boss
-            </button>
-          </div>
-        </div>
-
-        {/* Timeline */}
-        <div className="bg-white rounded-xl border border-navy-200 p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-navy-700 mb-3">Timeline</h3>
-          <div className="space-y-3">
-            {job.timeline.map((entry, idx) => (
-              <div key={entry.id} className="flex gap-3">
-                <div className="flex flex-col items-center">
-                  <div className={`w-3 h-3 rounded-full ${idx === job.timeline.length - 1 ? 'bg-primary-500' : 'bg-navy-200'}`} />
-                  {idx < job.timeline.length - 1 && <div className="w-0.5 flex-1 bg-navy-100 mt-1" />}
-                </div>
-                <div className="flex-1 pb-3">
-                  <p className="text-sm font-medium text-navy-800">{entry.message}</p>
-                  <p className="text-xs text-navy-400 mt-0.5">
-                    {entry.user} • {new Date(entry.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
-                    {entry.isCustomerVisible && <span className="ml-2 text-primary-600">(Customer visible)</span>}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Additional Actions */}
-        <div className="bg-white rounded-xl border border-navy-200 p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-navy-700 mb-3">Additional Options</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <button 
-              onClick={() => store.showToast('Parts request feature coming soon', 'info')}
-              className="flex items-center gap-2 px-4 py-3 bg-white border border-navy-200 rounded-lg text-sm text-navy-700 hover:bg-navy-50"
-            >
-              <Wrench size={16} /> Request Parts
-            </button>
-            <button 
-              onClick={() => store.showToast('Time estimate update coming soon', 'info')}
-              className="flex items-center gap-2 px-4 py-3 bg-white border border-navy-200 rounded-lg text-sm text-navy-700 hover:bg-navy-50"
-            >
-              <Clock size={16} /> Update Time Estimate
-            </button>
-            <button 
-              onClick={() => store.showToast(`Contacting ${job.customerName}...`, 'info')}
-              className="flex items-center gap-2 px-4 py-3 bg-white border border-navy-200 rounded-lg text-sm text-navy-700 hover:bg-navy-50"
-            >
-              <User size={16} /> Contact Customer
-            </button>
-            <button 
-              onClick={() => {
-                store.updateRepairStatus(job.id, 'delivered', 'Repair completed and delivered', techName);
-                store.showToast('Repair marked as complete!', 'success');
-              }}
-              className="flex items-center gap-2 px-4 py-3 bg-white border border-navy-200 rounded-lg text-sm text-navy-700 hover:bg-navy-50"
-            >
-              <CheckCircle size={16} /> Mark as Complete
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+import { technicians } from '../data/mockData';
 
 export function TechnicianFloor({ store }: { store: Store }) {
   const [selectedTech, setSelectedTech] = useState('tech1');
   const [showNoteModal, setShowNoteModal] = useState<string | null>(null);
   const [showPhotoModal, setShowPhotoModal] = useState<string | null>(null);
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
-  const [refreshKey, setRefreshKey] = useState(0);
 
   const myJobs = store.repairs.filter(j => j.assignedTo === selectedTech);
   const working = myJobs.filter(j => j.status === 'working').length;
@@ -216,9 +40,6 @@ export function TechnicianFloor({ store }: { store: Store }) {
     return colors[status] || 'border-navy-200 bg-navy-50';
   };
 
-  // Get the current job for work screen
-  const currentJob = selectedJobId ? store.repairs.find(r => r.id === selectedJobId) : null;
-
   return (
     <div className="max-w-7xl mx-auto space-y-4 pb-16 lg:pb-0">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -226,7 +47,7 @@ export function TechnicianFloor({ store }: { store: Store }) {
           <h1 className="text-2xl font-bold text-navy-900">Technician Floor</h1>
           <p className="text-sm text-navy-500">Manage repair assignments and workflow</p>
         </div>
-        <button onClick={() => { setRefreshKey(k => k + 1); store.showToast('Data refreshed', 'info'); }} className="flex items-center gap-1.5 px-3 py-2 bg-white border border-navy-200 rounded-lg text-sm text-navy-700 hover:bg-navy-50"><RefreshCw size={16} />Refresh</button>
+        <button onClick={() => store.showToast('Data refreshed', 'info')} className="flex items-center gap-1.5 px-3 py-2 bg-white border border-navy-200 rounded-lg text-sm text-navy-700 hover:bg-navy-50"><RefreshCw size={16} />Refresh</button>
       </div>
 
       <div className="flex gap-3 overflow-x-auto pb-2">
@@ -253,8 +74,7 @@ export function TechnicianFloor({ store }: { store: Store }) {
           return (
             <div 
               key={job.id} 
-              className={`bg-white rounded-xl border-2 ${getStatusColor(job.status)} p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow`}
-              onClick={() => setSelectedJobId(job.id)}
+              className={`bg-white rounded-xl border-2 ${getStatusColor(job.status)} p-4 shadow-sm`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
@@ -348,19 +168,6 @@ export function TechnicianFloor({ store }: { store: Store }) {
         </div>
       )}
 
-      {/* Work Screen */}
-      {currentJob && (
-        <WorkScreen
-          job={currentJob}
-          onClose={() => setSelectedJobId(null)}
-          store={store}
-          techName={techName}
-          onAddNote={() => { setShowNoteModal(currentJob.id); setNoteText(''); }}
-          onPhoto={() => setShowPhotoModal(currentJob.id)}
-          getStatusAction={getStatusAction}
-          getStatusColor={getStatusColor}
-        />
-      )}
     </div>
   );
 }
