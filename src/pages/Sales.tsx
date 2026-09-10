@@ -10,7 +10,7 @@ export function Sales({ store }: { store: Store }) {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({
     customerId: '', customerName: '', items: [] as { inventoryId: string; name: string; quantity: number; unitPrice: number; total: number }[],
-    selectedItem: '', quantity: 1, discount: 0, paymentMethod: 'cash' as PaymentMethod,
+    discount: 0, paymentMethod: 'cash' as PaymentMethod,
   });
 
   const filtered = store.sales.filter(s =>
@@ -20,14 +20,6 @@ export function Sales({ store }: { store: Store }) {
 
   const totalRevenue = store.sales.reduce((sum, s) => sum + s.totalAmount, 0);
   const totalTax = store.sales.reduce((sum, s) => sum + s.cgst + s.sgst + s.igst, 0);
-
-  const addItemToSale = () => {
-    const item = store.inventory.find(i => i.id === form.selectedItem);
-    if (!item) return;
-    const qty = Math.min(form.quantity, item.quantity);
-    const newItem = { inventoryId: item.id, name: item.name, quantity: qty, unitPrice: item.sellingPrice, total: qty * item.sellingPrice };
-    setForm({ ...form, items: [...form.items, newItem], selectedItem: '', quantity: 1 });
-  };
 
   const removeItem = (idx: number) => {
     setForm({ ...form, items: form.items.filter((_, i) => i !== idx) });
@@ -60,7 +52,7 @@ export function Sales({ store }: { store: Store }) {
       totalAmount,
       paymentMethod: form.paymentMethod,
     });
-    setForm({ customerId: '', customerName: '', items: [], selectedItem: '', quantity: 1, discount: 0, paymentMethod: 'cash' });
+    setForm({ customerId: '', customerName: '', items: [], discount: 0, paymentMethod: 'cash' });
     setShowAdd(false);
   };
 
@@ -143,8 +135,10 @@ export function Sales({ store }: { store: Store }) {
 
           <div className="border-t border-navy-100 pt-4">
             <p className="text-sm font-semibold text-navy-800 mb-3">Add Items</p>
+            
+            {/* Search Bar */}
             <div className="mb-3">
-              <div className="flex items-center gap-2 bg-navy-50 rounded-lg px-3 py-2 border border-navy-200 focus-within:border-primary-400 focus-within:ring-2 focus-within:ring-primary-100 mb-2">
+              <div className="flex items-center gap-2 bg-navy-50 rounded-lg px-3 py-2 border border-navy-200 focus-within:border-primary-400 focus-within:ring-2 focus-within:ring-primary-100">
                 <Search size={16} className="text-navy-400" />
                 <input 
                   type="text" 
@@ -154,44 +148,115 @@ export function Sales({ store }: { store: Store }) {
                   className="bg-transparent border-none outline-none text-sm text-navy-700 placeholder-navy-400 w-full" 
                 />
               </div>
+              
+              {/* Search Results - Click to Add */}
               {itemSearch && (
-                <div className="max-h-40 overflow-y-auto border border-navy-100 rounded-lg mb-2">
-                  {availableItems.filter(i => i.name.toLowerCase().includes(itemSearch.toLowerCase())).slice(0, 6).map(item => (
+                <div className="max-h-48 overflow-y-auto border border-navy-100 rounded-lg mt-2 bg-white shadow-sm">
+                  {availableItems.filter(i => i.name.toLowerCase().includes(itemSearch.toLowerCase())).slice(0, 8).map(item => (
                     <button 
                       key={item.id} 
-                      onClick={() => { setForm({ ...form, selectedItem: item.id }); setItemSearch(''); }} 
-                      className="w-full flex items-center justify-between px-3 py-2 hover:bg-primary-50 text-left text-sm border-b border-navy-50 last:border-0"
+                      onClick={() => {
+                        // Immediately add item to cart
+                        const existingItem = form.items.find(i => i.inventoryId === item.id);
+                        if (existingItem) {
+                          // If already in cart, increase quantity
+                          const updatedItems = form.items.map(i => 
+                            i.inventoryId === item.id 
+                              ? { ...i, quantity: i.quantity + 1, total: (i.quantity + 1) * i.unitPrice }
+                              : i
+                          );
+                          setForm({ ...form, items: updatedItems });
+                        } else {
+                          // Add new item to cart
+                          const newItem = { 
+                            inventoryId: item.id, 
+                            name: item.name, 
+                            quantity: 1, 
+                            unitPrice: item.sellingPrice, 
+                            total: item.sellingPrice 
+                          };
+                          setForm({ ...form, items: [...form.items, newItem] });
+                        }
+                        setItemSearch('');
+                        store.showToast(`Added: ${item.name}`, 'success');
+                      }} 
+                      className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-primary-50 text-left text-sm border-b border-navy-50 last:border-0 transition-colors"
                     >
-                      <span className="text-navy-700">{item.name}</span>
-                      <span className="text-navy-500">₹{item.sellingPrice} <span className="text-xs">(Qty: {item.quantity})</span></span>
+                      <div className="flex-1">
+                        <span className="text-navy-700 font-medium">{item.name}</span>
+                        <div className="text-xs text-navy-400 mt-0.5">Click to add to cart</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-navy-700 font-semibold">₹{item.sellingPrice}</div>
+                        <div className="text-xs text-navy-400">Qty: {item.quantity}</div>
+                      </div>
                     </button>
                   ))}
                   {availableItems.filter(i => i.name.toLowerCase().includes(itemSearch.toLowerCase())).length === 0 && (
-                    <p className="p-3 text-sm text-navy-400 text-center">No items found</p>
+                    <p className="p-4 text-sm text-navy-400 text-center">No items found</p>
                   )}
                 </div>
               )}
             </div>
-            <div className="flex gap-2 mb-3">
-              <select value={form.selectedItem} onChange={e => setForm({ ...form, selectedItem: e.target.value })} className={`${selectClass} flex-1`}>
-                <option value="">Or select from list...</option>
-                {availableItems.map(i => <option key={i.id} value={i.id}>{i.name} — ₹{i.sellingPrice} (Qty: {i.quantity})</option>)}
-              </select>
-              <input type="number" value={form.quantity} onChange={e => setForm({ ...form, quantity: Number(e.target.value) })} min={1} className={`${inputClass} w-20`} placeholder="Qty" />
-              <button onClick={addItemToSale} disabled={!form.selectedItem} className="px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed">Add</button>
-            </div>
 
+            {/* Cart Items with Quantity Controls */}
             {form.items.length > 0 && (
               <div className="bg-navy-50 rounded-lg p-3 space-y-2">
+                <p className="text-xs font-semibold text-navy-600 uppercase mb-2">Cart ({form.items.length} {form.items.length === 1 ? 'item' : 'items'})</p>
                 {form.items.map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between text-sm">
-                    <span className="text-navy-700">{item.name} × {item.quantity}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="font-medium text-navy-800">₹{item.total.toLocaleString()}</span>
-                      <button onClick={() => removeItem(idx)} className="text-rose-500 hover:text-rose-600 text-xs">Remove</button>
+                  <div key={idx} className="flex items-center justify-between text-sm bg-white rounded-lg p-2">
+                    <span className="text-navy-700 flex-1">{item.name}</span>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => {
+                          if (item.quantity <= 1) {
+                            removeItem(idx);
+                          } else {
+                            const updatedItems = form.items.map((i, iIdx) => 
+                              iIdx === idx 
+                                ? { ...i, quantity: i.quantity - 1, total: (i.quantity - 1) * i.unitPrice }
+                                : i
+                            );
+                            setForm({ ...form, items: updatedItems });
+                          }
+                        }}
+                        className="w-7 h-7 rounded bg-navy-100 hover:bg-navy-200 text-navy-600 text-sm font-medium flex items-center justify-center"
+                      >
+                        −
+                      </button>
+                      <span className="w-8 text-center text-navy-800 font-semibold">{item.quantity}</span>
+                      <button 
+                        onClick={() => {
+                          const updatedItems = form.items.map((i, iIdx) => 
+                            iIdx === idx 
+                              ? { ...i, quantity: i.quantity + 1, total: (i.quantity + 1) * i.unitPrice }
+                              : i
+                          );
+                          setForm({ ...form, items: updatedItems });
+                        }}
+                        className="w-7 h-7 rounded bg-navy-100 hover:bg-navy-200 text-navy-600 text-sm font-medium flex items-center justify-center"
+                      >
+                        +
+                      </button>
+                      <span className="w-20 text-right font-semibold text-navy-800">₹{item.total.toLocaleString()}</span>
+                      <button 
+                        onClick={() => removeItem(idx)} 
+                        className="text-rose-500 hover:text-rose-600 text-xs ml-1"
+                        title="Remove item"
+                      >
+                        ✕
+                      </button>
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Empty State */}
+            {form.items.length === 0 && !itemSearch && (
+              <div className="text-center py-6 text-navy-400 text-sm">
+                <ShoppingCart size={32} className="mx-auto mb-2 opacity-30" />
+                <p>Search and click items to add them to cart</p>
               </div>
             )}
           </div>
