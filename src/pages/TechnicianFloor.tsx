@@ -7,6 +7,7 @@ export function TechnicianFloor({ store }: { store: Store }) {
   const [selectedTech, setSelectedTech] = useState('tech1');
   const [showNoteModal, setShowNoteModal] = useState<string | null>(null);
   const [showPhotoModal, setShowPhotoModal] = useState<string | null>(null);
+  const [showWorkScreen, setShowWorkScreen] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -72,7 +73,11 @@ export function TechnicianFloor({ store }: { store: Store }) {
         {myJobs.map(job => {
           const action = getStatusAction(job.status);
           return (
-            <div key={job.id} className={`bg-white rounded-xl border-2 ${getStatusColor(job.status)} p-4 shadow-sm`}>
+            <div 
+              key={job.id} 
+              className={`bg-white rounded-xl border-2 ${getStatusColor(job.status)} p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow`}
+              onClick={() => setShowWorkScreen(job.id)}
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -87,32 +92,11 @@ export function TechnicianFloor({ store }: { store: Store }) {
                     </div>
                   )}
                 </div>
-                <div className="text-right shrink-0">{job.estimate && <p className="text-sm font-semibold text-navy-800">₹{job.estimate.toLocaleString()}</p>}</div>
-              </div>
-              {action && (
-                <div className="mt-3 pt-3 border-t border-navy-100/50 flex items-center gap-2">
-                  <button 
-                    onClick={() => {
-                      store.updateRepairStatus(job.id, action.nextStatus, action.message, techName);
-                    }}
-                    className={`flex items-center gap-1.5 px-4 py-2 ${action.color} text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity`}
-                  >
-                    {action.label}<ChevronRight size={14} />
-                  </button>
-                  <button 
-                    onClick={() => { setShowNoteModal(job.id); setNoteText(''); }}
-                    className="px-3 py-2 bg-white border border-navy-200 rounded-lg text-sm text-navy-600 hover:bg-navy-50"
-                  >
-                    Add Note
-                  </button>
-                  <button 
-                    onClick={() => setShowPhotoModal(job.id)}
-                    className="flex items-center gap-1 px-3 py-2 bg-white border border-navy-200 rounded-lg text-sm text-navy-600 hover:bg-navy-50"
-                  >
-                    <Camera size={14} /> Photo
-                  </button>
+                <div className="text-right shrink-0">
+                  {job.estimate && <p className="text-sm font-semibold text-navy-800">₹{job.estimate.toLocaleString()}</p>}
+                  <ChevronRight size={20} className="text-navy-300 mt-1" />
                 </div>
-              )}
+              </div>
             </div>
           );
         })}
@@ -183,6 +167,148 @@ export function TechnicianFloor({ store }: { store: Store }) {
           </div>
         </div>
       )}
+
+      {/* Work Screen Modal */}
+      {showWorkScreen && (() => {
+        const job = store.repairs.find(r => r.id === showWorkScreen);
+        if (!job) return null;
+        const action = getStatusAction(job.status);
+        return (
+          <div className="fixed inset-0 z-50 bg-navy-50 overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-navy-200 shadow-sm z-10">
+              <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => setShowWorkScreen(null)}
+                    className="p-2 hover:bg-navy-100 rounded-lg"
+                  >
+                    <ChevronRight size={20} className="text-navy-600 rotate-180" />
+                  </button>
+                  <div>
+                    <h2 className="text-lg font-bold text-navy-900">{job.repairNumber}</h2>
+                    <p className="text-xs text-navy-500">{job.deviceName}</p>
+                  </div>
+                </div>
+                <div className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${getStatusColor(job.status)} border`}>
+                  {job.status.replace(/_/g, ' ').toUpperCase()}
+                </div>
+              </div>
+            </div>
+
+            <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+              {/* Repair Info */}
+              <div className="bg-white rounded-xl border border-navy-200 p-5 shadow-sm">
+                <h3 className="text-sm font-semibold text-navy-700 mb-3">Repair Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-navy-500 mb-1">Customer</p>
+                    <p className="text-sm font-medium text-navy-900">{job.customerName}</p>
+                    <p className="text-xs text-navy-500">{job.customerPhone}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-navy-500 mb-1">Priority</p>
+                    <p className={`text-sm font-semibold capitalize ${job.priority === 'urgent' ? 'text-rose-600' : job.priority === 'high' ? 'text-amber-600' : 'text-navy-700'}`}>
+                      {job.priority}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-navy-500 mb-1">Estimate</p>
+                    <p className="text-sm font-semibold text-navy-900">₹{job.estimate?.toLocaleString() || '0'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-navy-500 mb-1">Created</p>
+                    <p className="text-sm text-navy-700">{new Date(job.createdAt).toLocaleDateString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                  </div>
+                </div>
+                <div className="mt-4 pt-4 border-t border-navy-100">
+                  <p className="text-xs text-navy-500 mb-1">Problem Description</p>
+                  <p className="text-sm text-navy-800">{job.problem}</p>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="bg-white rounded-xl border border-navy-200 p-5 shadow-sm">
+                <h3 className="text-sm font-semibold text-navy-700 mb-3">Quick Actions</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {action && (
+                    <button 
+                      onClick={() => {
+                        store.updateRepairStatus(job.id, action.nextStatus, action.message, techName);
+                      }}
+                      className={`flex items-center justify-center gap-2 px-4 py-3 ${action.color} text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity`}
+                    >
+                      {action.label}
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => { setShowNoteModal(job.id); setNoteText(''); }}
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-navy-100 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-200"
+                  >
+                    Add Note
+                  </button>
+                  <button 
+                    onClick={() => setShowPhotoModal(job.id)}
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-navy-100 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-200"
+                  >
+                    <Camera size={16} /> Photo
+                  </button>
+                  <button 
+                    onClick={() => {
+                      store.addRepairNote(job.id, '📞 Notified boss about this repair', techName);
+                      store.showToast('Boss notified successfully', 'success');
+                    }}
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600"
+                  >
+                    🔔 Notify Boss
+                  </button>
+                </div>
+              </div>
+
+              {/* Timeline */}
+              <div className="bg-white rounded-xl border border-navy-200 p-5 shadow-sm">
+                <h3 className="text-sm font-semibold text-navy-700 mb-3">Timeline</h3>
+                <div className="space-y-3">
+                  {job.timeline.map((entry, idx) => (
+                    <div key={entry.id} className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <div className={`w-3 h-3 rounded-full ${idx === job.timeline.length - 1 ? 'bg-primary-500' : 'bg-navy-200'}`} />
+                        {idx < job.timeline.length - 1 && <div className="w-0.5 flex-1 bg-navy-100 mt-1" />}
+                      </div>
+                      <div className="flex-1 pb-3">
+                        <p className="text-sm font-medium text-navy-800">{entry.message}</p>
+                        <p className="text-xs text-navy-400 mt-0.5">
+                          {entry.user} • {new Date(entry.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                          {entry.isCustomerVisible && <span className="ml-2 text-primary-600">(Customer visible)</span>}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Additional Actions */}
+              <div className="bg-white rounded-xl border border-navy-200 p-5 shadow-sm">
+                <h3 className="text-sm font-semibold text-navy-700 mb-3">Additional Options</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <button className="flex items-center gap-2 px-4 py-3 bg-white border border-navy-200 rounded-lg text-sm text-navy-700 hover:bg-navy-50">
+                    <Wrench size={16} /> Request Parts
+                  </button>
+                  <button className="flex items-center gap-2 px-4 py-3 bg-white border border-navy-200 rounded-lg text-sm text-navy-700 hover:bg-navy-50">
+                    <Clock size={16} /> Update Time Estimate
+                  </button>
+                  <button className="flex items-center gap-2 px-4 py-3 bg-white border border-navy-200 rounded-lg text-sm text-navy-700 hover:bg-navy-50">
+                    <User size={16} /> Contact Customer
+                  </button>
+                  <button className="flex items-center gap-2 px-4 py-3 bg-white border border-navy-200 rounded-lg text-sm text-navy-700 hover:bg-navy-50">
+                    <CheckCircle size={16} /> Mark as Complete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
