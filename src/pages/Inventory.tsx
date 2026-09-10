@@ -129,10 +129,10 @@ export function Inventory({ store }: { store: Store }) {
                 <div className="pt-3 border-t border-navy-100">
                   <p className="text-xs font-medium text-navy-500 mb-2">Quick Actions</p>
                   <div className="grid grid-cols-2 gap-2">
-                    <button onClick={() => setShowSell(selectedItem)} className="px-3 py-2 bg-primary-50 text-primary-700 rounded-lg text-sm font-medium hover:bg-primary-100">Sell</button>
-                    <button onClick={() => setShowRepair(selectedItem)} className="px-3 py-2 bg-amber-50 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-100">Send to Repair</button>
-                    <button onClick={() => setShowTransfer(selectedItem)} className="px-3 py-2 bg-navy-50 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-100">Transfer</button>
-                    <button onClick={() => setShowQR(selectedItem)} className="px-3 py-2 bg-navy-50 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-100 flex items-center justify-center gap-1"><QrCode size={14} /> Print QR</button>
+                    <button onClick={(e) => { e.stopPropagation(); setSelectedItem(null); setShowSell(selectedItem); }} className="px-3 py-2 bg-primary-50 text-primary-700 rounded-lg text-sm font-medium hover:bg-primary-100">Sell</button>
+                    <button onClick={(e) => { e.stopPropagation(); setSelectedItem(null); setShowRepair(selectedItem); }} className="px-3 py-2 bg-amber-50 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-100">Send to Repair</button>
+                    <button onClick={(e) => { e.stopPropagation(); setSelectedItem(null); setShowTransfer(selectedItem); }} className="px-3 py-2 bg-navy-50 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-100">Transfer</button>
+                    <button onClick={(e) => { e.stopPropagation(); setSelectedItem(null); setShowQR(selectedItem); }} className="px-3 py-2 bg-navy-50 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-100 flex items-center justify-center gap-1"><QrCode size={14} /> Print QR</button>
                   </div>
                 </div>
               </div>
