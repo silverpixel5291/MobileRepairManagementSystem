@@ -13,8 +13,12 @@ interface LayoutProps {
   setSidebarOpen: (open: boolean) => void;
   inventory?: any[];
   customers?: any[];
+  notifications?: any[];
+  unreadNotificationCount?: number;
   onQuickSale?: (data: any) => void;
   onScan?: (token: string) => void;
+  onMarkNotificationRead?: (id: string) => void;
+  onMarkAllNotificationsRead?: () => void;
 }
 
 const navItems = [
@@ -30,12 +34,11 @@ const navItems = [
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
 
-export function Layout({ children, sidebarOpen, setSidebarOpen, inventory = [], customers = [], onQuickSale, onScan }: LayoutProps) {
+export function Layout({ children, sidebarOpen, setSidebarOpen, inventory = [], customers = [], notifications = [], unreadNotificationCount = 0, onQuickSale, onScan, onMarkNotificationRead, onMarkAllNotificationsRead }: LayoutProps) {
   const [showScan, setShowScan] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showQuickSale, setShowQuickSale] = useState(false);
-  const unreadCount = 3; // Mock unread count
 
   return (
     <div className="min-h-screen bg-navy-50 flex">
@@ -155,9 +158,9 @@ export function Layout({ children, sidebarOpen, setSidebarOpen, inventory = [], 
               </button>
               <button onClick={() => setShowNotifications(true)} className="relative p-2 hover:bg-navy-50 rounded-lg">
                 <Bell size={20} className="text-navy-600" />
-                {unreadCount > 0 && (
+                {unreadNotificationCount > 0 && (
                   <span className="absolute top-1 right-1 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                    {unreadCount}
+                    {unreadNotificationCount}
                   </span>
                 )}
               </button>
@@ -198,7 +201,13 @@ export function Layout({ children, sidebarOpen, setSidebarOpen, inventory = [], 
 
       {/* Global Action Modals */}
       <ScanModal open={showScan} onClose={() => setShowScan(false)} onScan={onScan} />
-      <NotificationsPanel open={showNotifications} onClose={() => setShowNotifications(false)} />
+      <NotificationsPanel 
+        open={showNotifications} 
+        onClose={() => setShowNotifications(false)} 
+        notifications={notifications}
+        onMarkRead={onMarkNotificationRead}
+        onMarkAllRead={onMarkAllNotificationsRead}
+      />
       <ProfileMenu open={showProfile} onClose={() => setShowProfile(false)} />
       <QuickSaleModal
         open={showQuickSale}

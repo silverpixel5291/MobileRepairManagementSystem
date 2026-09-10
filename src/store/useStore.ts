@@ -1,12 +1,13 @@
 import { useState, useCallback } from 'react';
 import {
-  Customer, Supplier, InventoryItem, RepairJob, Sale, ScrapRecord,
+  Customer, Supplier, InventoryItem, RepairJob, Sale, ScrapRecord, Notification,
   customers as initialCustomers,
   suppliers as initialSuppliers,
   inventoryItems as initialInventory,
   repairJobs as initialRepairs,
   sales as initialSales,
   scrapRecords as initialScrap,
+  notifications as initialNotifications,
 } from '../data/mockData';
 
 // Simple ID generator
@@ -19,6 +20,7 @@ export function useStore() {
   const [repairs, setRepairs] = useState<RepairJob[]>(initialRepairs);
   const [sales, setSales] = useState<Sale[]>(initialSales);
   const [scrap, setScrap] = useState<ScrapRecord[]>(initialScrap);
+  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -116,9 +118,20 @@ export function useStore() {
     return newScrap;
   }, [showToast]);
 
+  const markNotificationRead = useCallback((id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  }, []);
+
+  const markAllNotificationsRead = useCallback(() => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  }, []);
+
+  const unreadNotificationCount = notifications.filter(n => !n.read).length;
+
   return {
-    customers, suppliers, inventory, repairs, sales, scrap, toast, showToast,
+    customers, suppliers, inventory, repairs, sales, scrap, notifications, toast, showToast,
     addCustomer, addSupplier, addInventory, addRepair, addSale, addScrap,
+    markNotificationRead, markAllNotificationsRead, unreadNotificationCount,
   };
 }
 

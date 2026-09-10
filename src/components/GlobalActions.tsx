@@ -67,18 +67,30 @@ export function ScanModal({ open, onClose, onScan }: { open: boolean; onClose: (
 }
 
 // ============ NOTIFICATIONS PANEL ============
-export function NotificationsPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [items, setItems] = useState(notifications);
+interface NotificationsPanelProps {
+  open: boolean;
+  onClose: () => void;
+  notifications: any[];
+  onMarkRead?: (id: string) => void;
+  onMarkAllRead?: () => void;
+}
 
-  const markAllRead = () => setItems(items.map(n => ({ ...n, read: true })));
+export function NotificationsPanel({ open, onClose, notifications, onMarkRead, onMarkAllRead }: NotificationsPanelProps) {
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <Modal open={open} onClose={onClose} title="Notifications" subtitle={`${items.filter(n => !n.read).length} unread`}>
+    <Modal open={open} onClose={onClose} title="Notifications" subtitle={`${unreadCount} unread`}>
       <div className="space-y-2">
         <div className="flex justify-end">
-          <button onClick={markAllRead} className="text-xs text-primary-600 font-medium hover:text-primary-700">Mark all as read</button>
+          <button 
+            onClick={() => onMarkAllRead?.()} 
+            className="text-xs text-primary-600 font-medium hover:text-primary-700"
+            disabled={unreadCount === 0}
+          >
+            Mark all as read
+          </button>
         </div>
-        {items.map(notif => (
+        {notifications.map(notif => (
           <div key={notif.id} className={`p-3 rounded-lg border ${!notif.read ? 'bg-primary-50/50 border-primary-100' : 'bg-white border-navy-100'}`}>
             <div className="flex items-start gap-2">
               <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${notif.type === 'warning' ? 'bg-amber-400' : notif.type === 'success' ? 'bg-mint-400' : notif.type === 'error' ? 'bg-rose-400' : 'bg-primary-400'} ${!notif.read ? 'animate-pulse-dot' : ''}`} />
@@ -87,9 +99,23 @@ export function NotificationsPanel({ open, onClose }: { open: boolean; onClose: 
                 <p className="text-xs text-navy-500 mt-0.5">{notif.message}</p>
                 <p className="text-[10px] text-navy-400 mt-1">{new Date(notif.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</p>
               </div>
+              {!notif.read && onMarkRead && (
+                <button 
+                  onClick={() => onMarkRead(notif.id)}
+                  className="text-xs text-primary-600 hover:text-primary-700 whitespace-nowrap"
+                >
+                  Mark read
+                </button>
+              )}
             </div>
           </div>
         ))}
+        {notifications.length === 0 && (
+          <div className="text-center py-8 text-navy-400">
+            <Bell size={32} className="mx-auto mb-2 opacity-30" />
+            <p className="text-sm">No notifications</p>
+          </div>
+        )}
       </div>
     </Modal>
   );

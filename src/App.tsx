@@ -34,8 +34,12 @@ export default function App() {
         setSidebarOpen={setSidebarOpen}
         inventory={store.inventory}
         customers={store.customers}
+        notifications={store.notifications}
+        unreadNotificationCount={store.unreadNotificationCount}
         onQuickSale={(data) => store.addSale(data)}
         onScan={handleScan}
+        onMarkNotificationRead={store.markNotificationRead}
+        onMarkAllNotificationsRead={store.markAllNotificationsRead}
       >
         <Routes>
           <Route path="/" element={<Dashboard store={store} />} />
