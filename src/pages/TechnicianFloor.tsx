@@ -181,7 +181,7 @@ export function TechnicianFloor({ store }: { store: Store }) {
   const [selectedTech, setSelectedTech] = useState('tech1');
   const [showNoteModal, setShowNoteModal] = useState<string | null>(null);
   const [showPhotoModal, setShowPhotoModal] = useState<string | null>(null);
-  const [showWorkScreen, setShowWorkScreen] = useState<string | null>(null);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -217,7 +217,7 @@ export function TechnicianFloor({ store }: { store: Store }) {
   };
 
   // Get the current job for work screen
-  const currentJob = showWorkScreen ? store.repairs.find(r => r.id === showWorkScreen) : null;
+  const currentJob = selectedJobId ? store.repairs.find(r => r.id === selectedJobId) : null;
 
   return (
     <div className="max-w-7xl mx-auto space-y-4 pb-16 lg:pb-0">
@@ -254,7 +254,7 @@ export function TechnicianFloor({ store }: { store: Store }) {
             <div 
               key={job.id} 
               className={`bg-white rounded-xl border-2 ${getStatusColor(job.status)} p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow`}
-              onClick={() => setShowWorkScreen(job.id)}
+              onClick={() => setSelectedJobId(job.id)}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
@@ -352,7 +352,7 @@ export function TechnicianFloor({ store }: { store: Store }) {
       {currentJob && (
         <WorkScreen
           job={currentJob}
-          onClose={() => setShowWorkScreen(null)}
+          onClose={() => setSelectedJobId(null)}
           store={store}
           techName={techName}
           onAddNote={() => { setShowNoteModal(currentJob.id); setNoteText(''); }}
