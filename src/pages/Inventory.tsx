@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Search, Plus, QrCode, MoreVertical, Package, Smartphone, Cable, Cpu } from 'lucide-react';
-import { Modal, FormField, FormRow, inputClass, selectClass, SubmitButton, Toggle } from '../components/Modal';
+import { Modal, FormField, FormRow, inputClass, selectClass, textareaClass, SubmitButton, Toggle } from '../components/Modal';
 import { QRCodeDisplay, ScanModal } from '../components/GlobalActions';
 import { Store } from '../store/useStore';
 import { InventoryItem, ItemCategory, InventoryStatus } from '../data/mockData';
@@ -13,6 +13,9 @@ export function Inventory({ store }: { store: Store }) {
   const [showAdd, setShowAdd] = useState(false);
   const [showQR, setShowQR] = useState<InventoryItem | null>(null);
   const [showScan, setShowScan] = useState(false);
+  const [showSell, setShowSell] = useState<InventoryItem | null>(null);
+  const [showRepair, setShowRepair] = useState<InventoryItem | null>(null);
+  const [showTransfer, setShowTransfer] = useState<InventoryItem | null>(null);
   const [nullImei, setNullImei] = useState(false);
   const [form, setForm] = useState({
     name: '', category: 'mobile' as ItemCategory, brand: '', model: '', imei: '',
@@ -126,9 +129,9 @@ export function Inventory({ store }: { store: Store }) {
                 <div className="pt-3 border-t border-navy-100">
                   <p className="text-xs font-medium text-navy-500 mb-2">Quick Actions</p>
                   <div className="grid grid-cols-2 gap-2">
-                    <button className="px-3 py-2 bg-primary-50 text-primary-700 rounded-lg text-sm font-medium hover:bg-primary-100">Sell</button>
-                    <button className="px-3 py-2 bg-amber-50 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-100">Send to Repair</button>
-                    <button className="px-3 py-2 bg-navy-50 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-100">Transfer</button>
+                    <button onClick={() => setShowSell(selectedItem)} className="px-3 py-2 bg-primary-50 text-primary-700 rounded-lg text-sm font-medium hover:bg-primary-100">Sell</button>
+                    <button onClick={() => setShowRepair(selectedItem)} className="px-3 py-2 bg-amber-50 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-100">Send to Repair</button>
+                    <button onClick={() => setShowTransfer(selectedItem)} className="px-3 py-2 bg-navy-50 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-100">Transfer</button>
                     <button onClick={() => setShowQR(selectedItem)} className="px-3 py-2 bg-navy-50 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-100 flex items-center justify-center gap-1"><QrCode size={14} /> Print QR</button>
                   </div>
                 </div>
@@ -225,6 +228,130 @@ export function Inventory({ store }: { store: Store }) {
           }
         }}
       />
+
+      {/* Sell Modal */}
+      <Modal open={!!showSell} onClose={() => setShowSell(null)} title="Sell Item" subtitle={showSell?.name}>
+        <div className="space-y-4">
+          <div className="bg-navy-50 rounded-lg p-4">
+            <p className="text-sm font-medium text-navy-700 mb-2">Item Details</p>
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between"><span className="text-navy-500">Device ID:</span><span className="font-medium">{showSell?.deviceId}</span></div>
+              <div className="flex justify-between"><span className="text-navy-500">Selling Price:</span><span className="font-semibold text-mint-600">₹{showSell?.sellingPrice.toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-navy-500">Available Qty:</span><span className="font-medium">{showSell?.quantity}</span></div>
+            </div>
+          </div>
+          <FormField label="Customer" required>
+            <select className={selectClass}>
+              <option value="">Select customer...</option>
+              {store.customers.map(c => <option key={c.id} value={c.id}>{c.name} — {c.phone}</option>)}
+            </select>
+          </FormField>
+          <FormRow>
+            <FormField label="Quantity" required>
+              <input type="number" defaultValue={1} min={1} max={showSell?.quantity || 1} className={inputClass} />
+            </FormField>
+            <FormField label="Payment Method">
+              <select className={selectClass}>
+                <option value="cash">Cash</option>
+                <option value="upi">UPI</option>
+                <option value="card">Card</option>
+                <option value="bank_transfer">Bank Transfer</option>
+              </select>
+            </FormField>
+          </FormRow>
+          <div className="flex justify-end gap-2 pt-3 border-t border-navy-100">
+            <SubmitButton variant="secondary" onClick={() => setShowSell(null)}>Cancel</SubmitButton>
+            <SubmitButton onClick={() => {
+              store.showToast(`Sale created for ${showSell?.name}`, 'success');
+              setShowSell(null);
+              setSelectedItem(null);
+            }}>Complete Sale</SubmitButton>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Send to Repair Modal */}
+      <Modal open={!!showRepair} onClose={() => setShowRepair(null)} title="Send to Repair" subtitle={showRepair?.name}>
+        <div className="space-y-4">
+          <div className="bg-navy-50 rounded-lg p-4">
+            <p className="text-sm font-medium text-navy-700 mb-2">Item Details</p>
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between"><span className="text-navy-500">Device ID:</span><span className="font-medium">{showRepair?.deviceId}</span></div>
+              <div className="flex justify-between"><span className="text-navy-500">Current Status:</span><span className="font-medium capitalize">{showRepair?.status.replace('_', ' ')}</span></div>
+            </div>
+          </div>
+          <FormField label="Customer" required>
+            <select className={selectClass}>
+              <option value="">Select customer...</option>
+              {store.customers.map(c => <option key={c.id} value={c.id}>{c.name} — {c.phone}</option>)}
+            </select>
+          </FormField>
+          <FormField label="Problem Description" required>
+            <textarea placeholder="Describe the issue..." rows={3} className={textareaClass} />
+          </FormField>
+          <FormRow>
+            <FormField label="Priority">
+              <select className={selectClass}>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </FormField>
+            <FormField label="Assign Technician">
+              <select className={selectClass}>
+                <option value="">Unassigned</option>
+                <option value="tech1">Vikram Singh</option>
+                <option value="tech2">Ravi Kumar</option>
+              </select>
+            </FormField>
+          </FormRow>
+          <FormField label="Estimated Cost (₹)">
+            <input type="number" placeholder="0" className={inputClass} />
+          </FormField>
+          <div className="flex justify-end gap-2 pt-3 border-t border-navy-100">
+            <SubmitButton variant="secondary" onClick={() => setShowRepair(null)}>Cancel</SubmitButton>
+            <SubmitButton onClick={() => {
+              store.showToast(`Repair job created for ${showRepair?.name}`, 'success');
+              setShowRepair(null);
+              setSelectedItem(null);
+            }}>Create Repair Job</SubmitButton>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Transfer Modal */}
+      <Modal open={!!showTransfer} onClose={() => setShowTransfer(null)} title="Transfer Location" subtitle={showTransfer?.name}>
+        <div className="space-y-4">
+          <div className="bg-navy-50 rounded-lg p-4">
+            <p className="text-sm font-medium text-navy-700 mb-2">Current Location</p>
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between"><span className="text-navy-500">Device ID:</span><span className="font-medium">{showTransfer?.deviceId}</span></div>
+              <div className="flex justify-between"><span className="text-navy-500">Rack:</span><span className="font-medium">{showTransfer?.rack || 'Not assigned'}</span></div>
+              <div className="flex justify-between"><span className="text-navy-500">Box:</span><span className="font-medium">{showTransfer?.box || 'Not assigned'}</span></div>
+            </div>
+          </div>
+          <FormRow>
+            <FormField label="New Rack" required>
+              <input type="text" placeholder="e.g. R-02" className={inputClass} />
+            </FormField>
+            <FormField label="New Box" required>
+              <input type="text" placeholder="e.g. B-05" className={inputClass} />
+            </FormField>
+          </FormRow>
+          <FormField label="Transfer Reason">
+            <textarea placeholder="Optional note..." rows={2} className={textareaClass} />
+          </FormField>
+          <div className="flex justify-end gap-2 pt-3 border-t border-navy-100">
+            <SubmitButton variant="secondary" onClick={() => setShowTransfer(null)}>Cancel</SubmitButton>
+            <SubmitButton onClick={() => {
+              store.showToast(`Item transferred to new location`, 'success');
+              setShowTransfer(null);
+              setSelectedItem(null);
+            }}>Transfer Item</SubmitButton>
+          </div>
+        </div>
+      </Modal>
 
       {/* Add Item Modal */}
       <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add Inventory Item" subtitle="Enter item details to add to inventory" size="lg">
