@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Wrench, Clock, AlertCircle, CheckCircle, RefreshCw, User, ChevronRight, Camera, ArrowLeft } from 'lucide-react';
 import { Store } from '../store/useStore';
 import { technicians, RepairJob } from '../data/mockData';
@@ -283,8 +284,8 @@ export function TechnicianFloor({ store }: { store: Store }) {
         )}
       </div>
 
-      {/* Note Modal */}
-      {showNoteModal && (
+      {/* Note Modal - Rendered via Portal */}
+      {showNoteModal && createPortal(
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowNoteModal(null)} />
           <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-5 animate-fade-in">
@@ -312,11 +313,12 @@ export function TechnicianFloor({ store }: { store: Store }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Photo Modal */}
-      {showPhotoModal && (
+      {/* Photo Modal - Rendered via Portal */}
+      {showPhotoModal && createPortal(
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowPhotoModal(null)} />
           <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-5 animate-fade-in">
@@ -345,11 +347,12 @@ export function TechnicianFloor({ store }: { store: Store }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Work Screen */}
-      {currentJob && (
+      {/* Work Screen - Rendered via Portal */}
+      {currentJob && createPortal(
         <WorkScreen
           job={currentJob}
           onClose={() => setShowWorkScreen(null)}
@@ -359,7 +362,8 @@ export function TechnicianFloor({ store }: { store: Store }) {
           onPhoto={() => setShowPhotoModal(currentJob.id)}
           getStatusAction={getStatusAction}
           getStatusColor={getStatusColor}
-        />
+        />,
+        document.body
       )}
     </div>
   );
