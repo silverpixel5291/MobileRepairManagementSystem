@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { Wrench, Clock, AlertCircle, CheckCircle, RefreshCw, User, ChevronRight } from 'lucide-react';
+import { Wrench, Clock, AlertCircle, CheckCircle, RefreshCw, User, ChevronRight, Camera } from 'lucide-react';
 import { Store } from '../store/useStore';
 import { technicians } from '../data/mockData';
 
 export function TechnicianFloor({ store }: { store: Store }) {
   const [selectedTech, setSelectedTech] = useState('tech1');
   const [showNoteModal, setShowNoteModal] = useState<string | null>(null);
+  const [showPhotoModal, setShowPhotoModal] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const myJobs = store.repairs.filter(j => j.assignedTo === selectedTech);
   const working = myJobs.filter(j => j.status === 'working').length;
@@ -14,17 +16,19 @@ export function TechnicianFloor({ store }: { store: Store }) {
   const readyForPickup = myJobs.filter(j => j.status === 'ready_pickup').length;
 
   const getStatusAction = (status: string) => {
-    const actions: Record<string, { label: string; color: string }> = {
-      received: { label: 'Start Diagnosis', color: 'bg-blue-500' },
-      diagnosing: { label: 'Generate Estimate', color: 'bg-purple-500' },
-      estimate_generated: { label: 'Mark Approved', color: 'bg-indigo-500' },
-      approved: { label: 'Start Work', color: 'bg-amber-500' },
-      working: { label: 'Quality Check', color: 'bg-teal-500' },
-      waiting_parts: { label: 'Parts Received', color: 'bg-amber-500' },
-      quality_check: { label: 'Ready for Pickup', color: 'bg-mint-500' },
+    const actions: Record<string, { label: string; color: string; nextStatus: string; message: string }> = {
+      received: { label: 'Start Diagnosis', color: 'bg-blue-500', nextStatus: 'diagnosing', message: 'Started diagnosis' },
+      diagnosing: { label: 'Generate Estimate', color: 'bg-purple-500', nextStatus: 'estimate_generated', message: 'Estimate generated' },
+      estimate_generated: { label: 'Mark Approved', color: 'bg-indigo-500', nextStatus: 'approved', message: 'Estimate approved by customer' },
+      approved: { label: 'Start Work', color: 'bg-amber-500', nextStatus: 'working', message: 'Started repair work' },
+      working: { label: 'Quality Check', color: 'bg-teal-500', nextStatus: 'quality_check', message: 'Repair completed, in quality check' },
+      waiting_parts: { label: 'Parts Received', color: 'bg-amber-500', nextStatus: 'working', message: 'Parts received, resuming work' },
+      quality_check: { label: 'Ready for Pickup', color: 'bg-mint-500', nextStatus: 'ready_pickup', message: 'Quality check passed, ready for pickup' },
     };
     return actions[status];
   };
+
+  const techName = technicians.find(t => t.id === selectedTech)?.name || 'Technician';
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -43,7 +47,7 @@ export function TechnicianFloor({ store }: { store: Store }) {
           <h1 className="text-2xl font-bold text-navy-900">Technician Floor</h1>
           <p className="text-sm text-navy-500">Manage repair assignments and workflow</p>
         </div>
-        <button className="flex items-center gap-1.5 px-3 py-2 bg-white border border-navy-200 rounded-lg text-sm text-navy-700 hover:bg-navy-50"><RefreshCw size={16} />Refresh</button>
+        <button onClick={() => { setRefreshKey(k => k + 1); store.showToast('Data refreshed', 'info'); }} className="flex items-center gap-1.5 px-3 py-2 bg-white border border-navy-200 rounded-lg text-sm text-navy-700 hover:bg-navy-50"><RefreshCw size={16} />Refresh</button>
       </div>
 
       <div className="flex gap-3 overflow-x-auto pb-2">
@@ -89,7 +93,7 @@ export function TechnicianFloor({ store }: { store: Store }) {
                 <div className="mt-3 pt-3 border-t border-navy-100/50 flex items-center gap-2">
                   <button 
                     onClick={() => {
-                      store.showToast(`Status updated: ${action.label}`, 'success');
+                      store.updateRepairStatus(job.id, action.nextStatus, action.message, techName);
                     }}
                     className={`flex items-center gap-1.5 px-4 py-2 ${action.color} text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity`}
                   >
@@ -102,10 +106,10 @@ export function TechnicianFloor({ store }: { store: Store }) {
                     Add Note
                   </button>
                   <button 
-                    onClick={() => store.showToast('Photo upload would open camera', 'info')}
-                    className="px-3 py-2 bg-white border border-navy-200 rounded-lg text-sm text-navy-600 hover:bg-navy-50"
+                    onClick={() => setShowPhotoModal(job.id)}
+                    className="flex items-center gap-1 px-3 py-2 bg-white border border-navy-200 rounded-lg text-sm text-navy-600 hover:bg-navy-50"
                   >
-                    📷 Photo
+                    <Camera size={14} /> Photo
                   </button>
                 </div>
               )}
@@ -134,8 +138,8 @@ export function TechnicianFloor({ store }: { store: Store }) {
               <button onClick={() => setShowNoteModal(null)} className="px-4 py-2 bg-navy-100 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-200">Cancel</button>
               <button 
                 onClick={() => {
-                  if (noteText.trim()) {
-                    store.showToast('Note added successfully', 'success');
+                  if (noteText.trim() && showNoteModal) {
+                    store.addRepairNote(showNoteModal, noteText, techName);
                     setShowNoteModal(null);
                     setNoteText('');
                   }
@@ -143,6 +147,37 @@ export function TechnicianFloor({ store }: { store: Store }) {
                 className="px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600"
               >
                 Save Note
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Photo Modal */}
+      {showPhotoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowPhotoModal(null)} />
+          <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-5 animate-fade-in">
+            <h3 className="text-lg font-bold text-navy-900 mb-3">Upload Photo</h3>
+            <div className="border-2 border-dashed border-navy-200 rounded-lg p-8 text-center mb-4">
+              <Camera size={48} className="mx-auto text-navy-300 mb-3" />
+              <p className="text-sm text-navy-600 mb-2">Click to upload or drag and drop</p>
+              <p className="text-xs text-navy-400">PNG, JPG up to 10MB</p>
+              <input type="file" accept="image/*" className="hidden" id="photo-upload" />
+              <label htmlFor="photo-upload" className="inline-block mt-3 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 cursor-pointer">
+                Choose File
+              </label>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowPhotoModal(null)} className="px-4 py-2 bg-navy-100 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-200">Cancel</button>
+              <button 
+                onClick={() => {
+                  store.addRepairNote(showPhotoModal, '📷 Photo uploaded', techName);
+                  setShowPhotoModal(null);
+                }}
+                className="px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600"
+              >
+                Upload
               </button>
             </div>
           </div>

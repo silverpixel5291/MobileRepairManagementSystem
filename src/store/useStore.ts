@@ -128,10 +128,56 @@ export function useStore() {
 
   const unreadNotificationCount = notifications.filter(n => !n.read).length;
 
+  const updateRepairStatus = useCallback((repairId: string, newStatus: string, message: string, user: string) => {
+    setRepairs(prev => prev.map(repair => {
+      if (repair.id === repairId) {
+        const newTimelineEntry = {
+          id: genId('t'),
+          status: newStatus as any,
+          message,
+          user,
+          timestamp: new Date().toISOString(),
+          isCustomerVisible: true,
+        };
+        return {
+          ...repair,
+          status: newStatus as any,
+          updatedAt: new Date().toISOString(),
+          timeline: [...repair.timeline, newTimelineEntry],
+        };
+      }
+      return repair;
+    }));
+    showToast(`Status updated to ${newStatus.replace(/_/g, ' ')}`, 'success');
+  }, [showToast]);
+
+  const addRepairNote = useCallback((repairId: string, note: string, user: string) => {
+    setRepairs(prev => prev.map(repair => {
+      if (repair.id === repairId) {
+        const newTimelineEntry = {
+          id: genId('t'),
+          status: repair.status,
+          message: note,
+          user,
+          timestamp: new Date().toISOString(),
+          isCustomerVisible: false,
+        };
+        return {
+          ...repair,
+          updatedAt: new Date().toISOString(),
+          timeline: [...repair.timeline, newTimelineEntry],
+        };
+      }
+      return repair;
+    }));
+    showToast('Note added successfully', 'success');
+  }, [showToast]);
+
   return {
     customers, suppliers, inventory, repairs, sales, scrap, notifications, toast, showToast,
     addCustomer, addSupplier, addInventory, addRepair, addSale, addScrap,
     markNotificationRead, markAllNotificationsRead, unreadNotificationCount,
+    updateRepairStatus, addRepairNote,
   };
 }
 
