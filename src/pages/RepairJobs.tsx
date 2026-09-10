@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { Plus, Clock, User, ExternalLink, ChevronRight } from 'lucide-react';
+import { Plus, Clock, User, ExternalLink, ChevronRight, Search, Filter } from 'lucide-react';
 import { Modal, FormField, FormRow, inputClass, selectClass, textareaClass, SubmitButton } from '../components/Modal';
 import { Store } from '../store/useStore';
 import { RepairJob, Priority, RepairStatus } from '../data/mockData';
 
 export function RepairJobs({ store }: { store: Store }) {
   const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [technicianFilter, setTechnicianFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
   const [selectedJob, setSelectedJob] = useState<RepairJob | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({
@@ -15,7 +18,32 @@ export function RepairJobs({ store }: { store: Store }) {
   });
   const [createNewCustomer, setCreateNewCustomer] = useState(false);
 
-  const filtered = store.repairs.filter(j => statusFilter === 'all' || j.status === statusFilter);
+  // Combined filtering logic
+  const filtered = store.repairs.filter(j => {
+    // Status filter
+    if (statusFilter !== 'all' && j.status !== statusFilter) return false;
+    
+    // Technician filter
+    if (technicianFilter !== 'all' && j.assignedTo !== technicianFilter) return false;
+    
+    // Priority filter
+    if (priorityFilter !== 'all' && j.priority !== priorityFilter) return false;
+    
+    // Search query (searches repair number, customer name, device name, problem)
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesRepairNumber = j.repairNumber.toLowerCase().includes(query);
+      const matchesCustomerName = j.customerName.toLowerCase().includes(query);
+      const matchesDeviceName = j.deviceName?.toLowerCase().includes(query);
+      const matchesProblem = j.problem.toLowerCase().includes(query);
+      
+      if (!matchesRepairNumber && !matchesCustomerName && !matchesDeviceName && !matchesProblem) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
 
   const statusCounts = {
     all: store.repairs.length,
@@ -83,11 +111,79 @@ export function RepairJobs({ store }: { store: Store }) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-navy-900">Repair Jobs</h1>
-          <p className="text-sm text-navy-500">{statusCounts.all} total jobs • {statusCounts.working + statusCounts.waiting_parts} in progress</p>
+          <p className="text-sm text-navy-500">{filtered.length} of {statusCounts.all} jobs</p>
         </div>
         <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 shadow-sm">
           <Plus size={16} /> New Repair Job
         </button>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="bg-white rounded-xl border border-navy-100 p-4 shadow-sm space-y-3">
+        {/* Search Bar */}
+        <div className="flex items-center gap-2 bg-navy-50 rounded-lg px-3 py-2">
+          <Search size={18} className="text-navy-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by repair number, customer, device, or problem..."
+            className="bg-transparent border-none outline-none text-sm text-navy-700 placeholder-navy-400 w-full"
+          />
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchQuery('')}
+              className="text-navy-400 hover:text-navy-600 text-xs"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
+        {/* Filter Dropdowns */}
+        <div className="flex flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <Filter size={16} className="text-navy-400" />
+            <span className="text-xs text-navy-500">Filters:</span>
+          </div>
+          
+          <select
+            value={technicianFilter}
+            onChange={(e) => setTechnicianFilter(e.target.value)}
+            className="px-3 py-1.5 bg-navy-50 border border-navy-200 rounded-lg text-sm text-navy-700 outline-none focus:border-primary-400"
+          >
+            <option value="all">All Technicians</option>
+            <option value="tech1">Vikram Singh</option>
+            <option value="tech2">Ravi Kumar</option>
+            <option value="unassigned">Unassigned</option>
+          </select>
+
+          <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            className="px-3 py-1.5 bg-navy-50 border border-navy-200 rounded-lg text-sm text-navy-700 outline-none focus:border-primary-400"
+          >
+            <option value="all">All Priorities</option>
+            <option value="urgent">Urgent</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+
+          {(searchQuery || technicianFilter !== 'all' || priorityFilter !== 'all' || statusFilter !== 'all') && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setTechnicianFilter('all');
+                setPriorityFilter('all');
+                setStatusFilter('all');
+              }}
+              className="px-3 py-1.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-lg text-sm hover:bg-rose-100 transition-colors"
+            >
+              Clear All
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-navy-100 p-2 shadow-sm overflow-x-auto">
