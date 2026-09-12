@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Trash2, RotateCcw, IndianRupee } from 'lucide-react';
+import { Trash2, RotateCcw, IndianRupee, X } from 'lucide-react';
 import { Modal, FormField, FormRow, inputClass, selectClass, textareaClass, SubmitButton } from '../components/Modal';
 import { Store } from '../store/useStore';
+import { ScrapRecord } from '../data/mockData';
 
 export function ScrapReturns({ store }: { store: Store }) {
   const [showAddScrap, setShowAddScrap] = useState(false);
+  const [selectedScrap, setSelectedScrap] = useState<ScrapRecord | null>(null);
   const [form, setForm] = useState({ itemName: '', category: 'mobile', quantity: 1, reason: '', recoveryValue: 0 });
 
   const totalRecovery = store.scrap.reduce((sum, s) => sum + s.recoveryValue, 0);
@@ -47,22 +49,22 @@ export function ScrapReturns({ store }: { store: Store }) {
             <thead>
               <tr className="bg-navy-50 border-b border-navy-100">
                 <th className="text-left px-4 py-3 text-xs font-medium text-navy-500 uppercase">Item</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-navy-500 uppercase hidden sm:table-cell">Category</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-navy-500 uppercase">Category</th>
                 <th className="text-right px-4 py-3 text-xs font-medium text-navy-500 uppercase">Qty</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-navy-500 uppercase hidden md:table-cell">Reason</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-navy-500 uppercase">Reason</th>
                 <th className="text-right px-4 py-3 text-xs font-medium text-navy-500 uppercase">Recovery</th>
-                <th className="text-right px-4 py-3 text-xs font-medium text-navy-500 uppercase hidden lg:table-cell">Date</th>
+                <th className="text-right px-4 py-3 text-xs font-medium text-navy-500 uppercase">Date</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-navy-50">
               {store.scrap.map(record => (
-                <tr key={record.id} className="hover:bg-navy-50/50">
+                <tr key={record.id} onClick={() => setSelectedScrap(record)} className="hover:bg-navy-50/50 cursor-pointer">
                   <td className="px-4 py-3"><p className="font-medium text-navy-800">{record.itemName}</p></td>
-                  <td className="px-4 py-3 text-navy-600 capitalize hidden sm:table-cell">{record.category.replace('_', ' ')}</td>
+                  <td className="px-4 py-3 text-navy-600 capitalize">{record.category.replace('_', ' ')}</td>
                   <td className="px-4 py-3 text-right font-medium text-navy-800">{record.quantity}</td>
-                  <td className="px-4 py-3 text-navy-500 hidden md:table-cell max-w-xs truncate">{record.reason}</td>
+                  <td className="px-4 py-3 text-navy-500 max-w-xs truncate">{record.reason}</td>
                   <td className="px-4 py-3 text-right font-medium text-mint-600">₹{record.recoveryValue.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right text-navy-500 hidden lg:table-cell">{new Date(record.createdAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</td>
+                  <td className="px-4 py-3 text-right text-navy-500">{new Date(record.createdAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</td>
                 </tr>
               ))}
             </tbody>
@@ -107,6 +109,66 @@ export function ScrapReturns({ store }: { store: Store }) {
           </div>
         </div>
       </Modal>
+
+      {/* Scrap Detail Modal */}
+      {selectedScrap && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setSelectedScrap(null)}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-navy-100 px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg bg-rose-100 flex items-center justify-center">
+                  <Trash2 size={24} className="text-rose-600" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-navy-900">{selectedScrap.itemName}</h2>
+                  <p className="text-sm text-navy-500">Scrap Record</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedScrap(null)} className="p-2 hover:bg-navy-100 rounded-lg">
+                <X size={20} className="text-navy-500" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Item Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-navy-50 rounded-lg p-4">
+                  <p className="text-sm text-navy-600 mb-1">Category</p>
+                  <p className="text-base font-medium text-navy-900 capitalize">{selectedScrap.category.replace('_', ' ')}</p>
+                </div>
+                <div className="bg-navy-50 rounded-lg p-4">
+                  <p className="text-sm text-navy-600 mb-1">Quantity</p>
+                  <p className="text-base font-medium text-navy-900">{selectedScrap.quantity}</p>
+                </div>
+                <div className="bg-mint-50 rounded-lg p-4">
+                  <p className="text-sm text-navy-600 mb-1">Recovery Value</p>
+                  <p className="text-2xl font-bold text-mint-700">₹{selectedScrap.recoveryValue.toLocaleString()}</p>
+                </div>
+                <div className="bg-navy-50 rounded-lg p-4">
+                  <p className="text-sm text-navy-600 mb-1">Date Recorded</p>
+                  <p className="text-base font-medium text-navy-900">{new Date(selectedScrap.createdAt).toLocaleDateString('en-IN', { dateStyle: 'long' })}</p>
+                </div>
+              </div>
+
+              {/* Reason */}
+              <div className="bg-amber-50 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-amber-700 mb-2">Scrap Reason</h3>
+                <p className="text-base text-navy-800">{selectedScrap.reason}</p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-4 border-t border-navy-100">
+                <button className="flex-1 px-4 py-2 bg-navy-100 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-200">
+                  Print Record
+                </button>
+                <button className="flex-1 px-4 py-2 bg-rose-500 text-white rounded-lg text-sm font-medium hover:bg-rose-600">
+                  Delete Record
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

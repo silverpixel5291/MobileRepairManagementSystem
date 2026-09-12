@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { TrendingUp, Package, Wrench, Store, Trash2, Download, Calendar } from 'lucide-react';
+import { TrendingUp, Package, Wrench, Store, Trash2, Download, Calendar, X } from 'lucide-react';
 import { Store as StoreType } from '../store/useStore';
 
 export function Reports({ store }: { store: StoreType }) {
   const [dateFilter, setDateFilter] = useState<'day' | 'week' | 'month' | 'all'>('month');
+  const [selectedReport, setSelectedReport] = useState<string | null>(null);
   // Filter data by date range
   const now = new Date('2026-09-06');
   const filteredSales = store.sales.filter(s => {
@@ -77,7 +78,11 @@ export function Reports({ store }: { store: StoreType }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {reports.map(report => (
-          <div key={report.id} className="bg-white rounded-xl border border-navy-100 p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
+          <div 
+            key={report.id} 
+            onClick={() => setSelectedReport(report.id)}
+            className="bg-white rounded-xl border border-navy-100 p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+          >
             <div className="flex items-start justify-between mb-3">
               <div className={`w-11 h-11 rounded-lg ${report.color} flex items-center justify-center`}><report.icon size={22} className="text-white" /></div>
               <Download size={16} className="text-navy-300 group-hover:text-primary-500 transition-colors" />
@@ -112,6 +117,194 @@ export function Reports({ store }: { store: StoreType }) {
           ))}
         </div>
       </div>
+
+      {/* Report Detail Modal */}
+      {selectedReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setSelectedReport(null)}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-navy-100 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-navy-900">{reports.find(r => r.id === selectedReport)?.title}</h2>
+                <p className="text-sm text-navy-500">{dateFilter === 'day' ? 'Today' : dateFilter === 'week' ? 'This Week' : dateFilter === 'month' ? 'This Month' : 'All Time'}</p>
+              </div>
+              <button onClick={() => setSelectedReport(null)} className="p-2 hover:bg-navy-100 rounded-lg">
+                <X size={20} className="text-navy-500" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {selectedReport === 'sales' && (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-mint-50 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-mint-700">₹{totalRevenue.toLocaleString()}</p>
+                      <p className="text-sm text-navy-600 mt-1">Total Revenue</p>
+                    </div>
+                    <div className="bg-primary-50 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-primary-700">{filteredSales.length}</p>
+                      <p className="text-sm text-navy-600 mt-1">Invoices</p>
+                    </div>
+                    <div className="bg-amber-50 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-amber-700">₹{totalTax.toFixed(2)}</p>
+                      <p className="text-sm text-navy-600 mt-1">GST Collected</p>
+                    </div>
+                    <div className="bg-navy-50 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-navy-700">₹{filteredSales.length > 0 ? (totalRevenue / filteredSales.length).toFixed(0) : 0}</p>
+                      <p className="text-sm text-navy-600 mt-1">Avg. Order</p>
+                    </div>
+                  </div>
+                  <div className="bg-white border border-navy-100 rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-navy-50">
+                        <tr>
+                          <th className="text-left px-4 py-2 font-medium text-navy-600">Invoice</th>
+                          <th className="text-left px-4 py-2 font-medium text-navy-600">Customer</th>
+                          <th className="text-right px-4 py-2 font-medium text-navy-600">Amount</th>
+                          <th className="text-left px-4 py-2 font-medium text-navy-600">Payment</th>
+                          <th className="text-right px-4 py-2 font-medium text-navy-600">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-navy-50">
+                        {filteredSales.map(sale => (
+                          <tr key={sale.id}>
+                            <td className="px-4 py-3 font-medium text-navy-800">{sale.invoiceNumber}</td>
+                            <td className="px-4 py-3 text-navy-700">{sale.customerName}</td>
+                            <td className="px-4 py-3 text-right font-semibold text-navy-800">₹{sale.totalAmount.toFixed(2)}</td>
+                            <td className="px-4 py-3 text-navy-600 capitalize">{sale.paymentMethod.replace('_', ' ')}</td>
+                            <td className="px-4 py-3 text-right text-navy-500">{new Date(sale.createdAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+
+              {selectedReport === 'inventory' && (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-primary-50 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-primary-700">{store.inventory.length}</p>
+                      <p className="text-sm text-navy-600 mt-1">Total Items</p>
+                    </div>
+                    <div className="bg-mint-50 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-mint-700">₹{(totalInventoryValue/1000).toFixed(0)}K</p>
+                      <p className="text-sm text-navy-600 mt-1">Total Value</p>
+                    </div>
+                    <div className="bg-amber-50 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-amber-700">{lowStockCount}</p>
+                      <p className="text-sm text-navy-600 mt-1">Low Stock</p>
+                    </div>
+                    <div className="bg-rose-50 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-rose-700">{store.inventory.filter(i => i.status === 'sold').length}</p>
+                      <p className="text-sm text-navy-600 mt-1">Sold</p>
+                    </div>
+                  </div>
+                  <div className="bg-white border border-navy-100 rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-navy-50">
+                        <tr>
+                          <th className="text-left px-4 py-2 font-medium text-navy-600">Item</th>
+                          <th className="text-left px-4 py-2 font-medium text-navy-600">Category</th>
+                          <th className="text-right px-4 py-2 font-medium text-navy-600">Qty</th>
+                          <th className="text-right px-4 py-2 font-medium text-navy-600">Price</th>
+                          <th className="text-left px-4 py-2 font-medium text-navy-600">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-navy-50">
+                        {store.inventory.slice(0, 20).map(item => (
+                          <tr key={item.id}>
+                            <td className="px-4 py-3 font-medium text-navy-800">{item.name}</td>
+                            <td className="px-4 py-3 text-navy-600 capitalize">{item.category.replace('_', ' ')}</td>
+                            <td className="px-4 py-3 text-right text-navy-700">{item.quantity}</td>
+                            <td className="px-4 py-3 text-right font-semibold text-navy-800">₹{item.sellingPrice.toLocaleString()}</td>
+                            <td className="px-4 py-3"><span className={`text-xs px-2 py-1 rounded capitalize ${item.status === 'available' ? 'bg-mint-100 text-mint-700' : 'bg-navy-100 text-navy-600'}`}>{item.status}</span></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+
+              {selectedReport === 'repairs' && (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-amber-50 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-amber-700">{store.repairs.length}</p>
+                      <p className="text-sm text-navy-600 mt-1">Total Jobs</p>
+                    </div>
+                    <div className="bg-mint-50 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-mint-700">{store.repairs.filter(r => r.status === 'delivered').length}</p>
+                      <p className="text-sm text-navy-600 mt-1">Completed</p>
+                    </div>
+                    <div className="bg-primary-50 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-primary-700">{store.repairs.filter(r => r.status === 'working').length}</p>
+                      <p className="text-sm text-navy-600 mt-1">In Progress</p>
+                    </div>
+                    <div className="bg-rose-50 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-rose-700">₹{(totalEstimates/1000).toFixed(1)}K</p>
+                      <p className="text-sm text-navy-600 mt-1">Total Estimates</p>
+                    </div>
+                  </div>
+                  <div className="bg-white border border-navy-100 rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-navy-50">
+                        <tr>
+                          <th className="text-left px-4 py-2 font-medium text-navy-600">Repair #</th>
+                          <th className="text-left px-4 py-2 font-medium text-navy-600">Customer</th>
+                          <th className="text-left px-4 py-2 font-medium text-navy-600">Device</th>
+                          <th className="text-left px-4 py-2 font-medium text-navy-600">Status</th>
+                          <th className="text-right px-4 py-2 font-medium text-navy-600">Estimate</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-navy-50">
+                        {store.repairs.map(repair => (
+                          <tr key={repair.id}>
+                            <td className="px-4 py-3 font-medium text-navy-800">{repair.repairNumber}</td>
+                            <td className="px-4 py-3 text-navy-700">{repair.customerName}</td>
+                            <td className="px-4 py-3 text-navy-600">{repair.deviceName}</td>
+                            <td className="px-4 py-3"><span className="text-xs px-2 py-1 rounded capitalize bg-navy-100 text-navy-600">{repair.status.replace('_', ' ')}</span></td>
+                            <td className="px-4 py-3 text-right font-semibold text-navy-800">₹{repair.estimate?.toLocaleString() || '0'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+
+              {(selectedReport === 'suppliers' || selectedReport === 'scrap') && (
+                <div className="text-center py-12">
+                  <p className="text-navy-500">Detailed report view coming soon...</p>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-4 border-t border-navy-100">
+                <button 
+                  onClick={() => {
+                    const csv = 'Invoice,Customer,Amount,Date\n' + filteredSales.map(s => `${s.invoiceNumber},${s.customerName},${s.totalAmount},${s.createdAt}`).join('\n');
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${selectedReport}-report-${dateFilter}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    store.showToast('Report exported successfully', 'success');
+                  }}
+                  className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600"
+                >
+                  Export CSV
+                </button>
+                <button className="flex-1 px-4 py-2 bg-navy-100 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-200">
+                  Print Report
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

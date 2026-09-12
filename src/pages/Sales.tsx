@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Plus, Download, FileText, Search, ShoppingCart } from 'lucide-react';
+import { Plus, Download, FileText, Search, ShoppingCart, X } from 'lucide-react';
 import { Modal, FormField, FormRow, inputClass, selectClass, SubmitButton } from '../components/Modal';
 import { Store } from '../store/useStore';
-import { PaymentMethod } from '../data/mockData';
+import { PaymentMethod, Sale } from '../data/mockData';
 
 export function Sales({ store }: { store: Store }) {
   const [search, setSearch] = useState('');
   const [itemSearch, setItemSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
+  const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [form, setForm] = useState({
     customerId: '', customerName: '', items: [] as { inventoryId: string; name: string; quantity: number; unitPrice: number; total: number }[],
     discount: 0, paymentMethod: 'cash' as PaymentMethod,
@@ -100,13 +101,13 @@ export function Sales({ store }: { store: Store }) {
             </thead>
             <tbody className="divide-y divide-navy-50">
               {filtered.map(sale => (
-                <tr key={sale.id} className="hover:bg-navy-50/50">
+                <tr key={sale.id} onClick={() => setSelectedSale(sale)} className="hover:bg-navy-50/50 cursor-pointer">
                   <td className="px-4 py-3"><div className="flex items-center gap-2"><FileText size={16} className="text-primary-500" /><span className="font-medium text-navy-800">{sale.invoiceNumber}</span></div></td>
                   <td className="px-4 py-3 text-navy-700">{sale.customerName}</td>
-                  <td className="px-4 py-3 text-navy-500 hidden md:table-cell">{sale.items.length} item(s)</td>
+                  <td className="px-4 py-3 text-navy-500">{sale.items.length} item(s)</td>
                   <td className="px-4 py-3 text-right font-semibold text-navy-800">₹{sale.totalAmount.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-center hidden sm:table-cell"><span className="text-xs bg-navy-100 text-navy-600 px-2 py-0.5 rounded capitalize">{sale.paymentMethod.replace('_', ' ')}</span></td>
-                  <td className="px-4 py-3 text-right text-navy-500 hidden lg:table-cell">{new Date(sale.createdAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</td>
+                  <td className="px-4 py-3 text-center"><span className="text-xs bg-navy-100 text-navy-600 px-2 py-0.5 rounded capitalize">{sale.paymentMethod.replace('_', ' ')}</span></td>
+                  <td className="px-4 py-3 text-right text-navy-500">{new Date(sale.createdAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</td>
                 </tr>
               ))}
             </tbody>
@@ -291,6 +292,85 @@ export function Sales({ store }: { store: Store }) {
           </div>
         </div>
       </Modal>
+
+      {/* Sale Detail Modal */}
+      {selectedSale && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setSelectedSale(null)}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-navy-100 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-navy-900">{selectedSale.invoiceNumber}</h2>
+                <p className="text-sm text-navy-500">{new Date(selectedSale.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+              </div>
+              <button onClick={() => setSelectedSale(null)} className="p-2 hover:bg-navy-100 rounded-lg">
+                <X size={20} className="text-navy-500" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Customer Info */}
+              <div className="bg-navy-50 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-navy-700 mb-2">Customer</h3>
+                <p className="text-base font-medium text-navy-900">{selectedSale.customerName}</p>
+              </div>
+
+              {/* Items */}
+              <div>
+                <h3 className="text-sm font-semibold text-navy-700 mb-3">Items</h3>
+                <div className="border border-navy-100 rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-navy-50">
+                      <tr>
+                        <th className="text-left px-4 py-2 font-medium text-navy-600">Item</th>
+                        <th className="text-center px-4 py-2 font-medium text-navy-600">Qty</th>
+                        <th className="text-right px-4 py-2 font-medium text-navy-600">Price</th>
+                        <th className="text-right px-4 py-2 font-medium text-navy-600">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-navy-50">
+                      {selectedSale.items.map((item, idx) => (
+                        <tr key={idx}>
+                          <td className="px-4 py-3 text-navy-800">{item.name}</td>
+                          <td className="px-4 py-3 text-center text-navy-600">{item.quantity}</td>
+                          <td className="px-4 py-3 text-right text-navy-600">₹{item.unitPrice.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-right font-medium text-navy-800">₹{item.total.toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Payment Summary */}
+              <div className="bg-primary-50 rounded-lg p-4 space-y-2">
+                <div className="flex justify-between text-sm"><span className="text-navy-600">Subtotal</span><span className="font-medium">₹{selectedSale.subtotal.toLocaleString()}</span></div>
+                {selectedSale.discount > 0 && <div className="flex justify-between text-sm"><span className="text-navy-600">Discount</span><span className="font-medium text-rose-600">-₹{selectedSale.discount.toLocaleString()}</span></div>}
+                <div className="flex justify-between text-sm"><span className="text-navy-600">Taxable Amount</span><span className="font-medium">₹{selectedSale.taxableAmount.toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-navy-600">CGST (9%)</span><span className="font-medium">₹{selectedSale.cgst.toFixed(2)}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-navy-600">SGST (9%)</span><span className="font-medium">₹{selectedSale.sgst.toFixed(2)}</span></div>
+                {selectedSale.igst > 0 && <div className="flex justify-between text-sm"><span className="text-navy-600">IGST (18%)</span><span className="font-medium">₹{selectedSale.igst.toFixed(2)}</span></div>}
+                <div className="flex justify-between text-lg font-bold pt-2 border-t border-primary-200"><span className="text-navy-800">Total</span><span className="text-primary-700">₹{selectedSale.totalAmount.toFixed(2)}</span></div>
+              </div>
+
+              {/* Payment Method */}
+              <div className="flex items-center justify-between bg-navy-50 rounded-lg p-4">
+                <span className="text-sm text-navy-600">Payment Method</span>
+                <span className="text-sm font-medium text-navy-800 capitalize">{selectedSale.paymentMethod.replace('_', ' ')}</span>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-4 border-t border-navy-100">
+                <button className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600">
+                  Print Invoice
+                </button>
+                <button className="flex-1 px-4 py-2 bg-navy-100 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-200">
+                  Send via WhatsApp
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

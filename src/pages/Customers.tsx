@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { Plus, Search, Users, Phone, Mail, Building } from 'lucide-react';
+import { Plus, Search, Users, Phone, Mail, Building, X, Calendar, MapPin } from 'lucide-react';
 import { Modal, FormField, FormRow, inputClass, selectClass, SubmitButton } from '../components/Modal';
 import { Store } from '../store/useStore';
+import { Customer } from '../data/mockData';
 
 export function Customers({ store }: { store: Store }) {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [showAdd, setShowAdd] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [form, setForm] = useState({ name: '', phone: '', email: '', address: '', gstin: '', type: 'individual' as 'individual' | 'business', birthday: '' });
 
   const filtered = store.customers.filter(c => {
@@ -51,7 +53,11 @@ export function Customers({ store }: { store: Store }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map(customer => (
-          <div key={customer.id} className="bg-white rounded-xl border border-navy-100 p-4 shadow-sm hover:shadow-md transition-shadow">
+          <div 
+            key={customer.id} 
+            onClick={() => setSelectedCustomer(customer)}
+            className="bg-white rounded-xl border border-navy-100 p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+          >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${customer.type === 'business' ? 'bg-purple-100 text-purple-600' : 'bg-primary-100 text-primary-600'}`}>
@@ -125,6 +131,104 @@ export function Customers({ store }: { store: Store }) {
           </div>
         </div>
       </Modal>
+
+      {/* Customer Detail Modal */}
+      {selectedCustomer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setSelectedCustomer(null)}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-navy-100 px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${selectedCustomer.type === 'business' ? 'bg-purple-100 text-purple-600' : 'bg-primary-100 text-primary-600'}`}>
+                  {selectedCustomer.type === 'business' ? <Building size={24} /> : <Users size={24} />}
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-navy-900">{selectedCustomer.name}</h2>
+                  <p className="text-sm text-navy-500 capitalize">{selectedCustomer.type} Customer</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedCustomer(null)} className="p-2 hover:bg-navy-100 rounded-lg">
+                <X size={20} className="text-navy-500" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Contact Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-navy-50 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Phone size={16} className="text-navy-500" />
+                    <span className="text-sm font-medium text-navy-700">Phone</span>
+                  </div>
+                  <p className="text-base text-navy-900">{selectedCustomer.phone}</p>
+                </div>
+                {selectedCustomer.email && (
+                  <div className="bg-navy-50 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Mail size={16} className="text-navy-500" />
+                      <span className="text-sm font-medium text-navy-700">Email</span>
+                    </div>
+                    <p className="text-base text-navy-900">{selectedCustomer.email}</p>
+                  </div>
+                )}
+                {selectedCustomer.birthday && (
+                  <div className="bg-navy-50 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Calendar size={16} className="text-navy-500" />
+                      <span className="text-sm font-medium text-navy-700">Birthday</span>
+                    </div>
+                    <p className="text-base text-navy-900">{new Date(selectedCustomer.birthday).toLocaleDateString('en-IN', { dateStyle: 'long' })}</p>
+                  </div>
+                )}
+                {selectedCustomer.address && (
+                  <div className="bg-navy-50 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MapPin size={16} className="text-navy-500" />
+                      <span className="text-sm font-medium text-navy-700">Address</span>
+                    </div>
+                    <p className="text-base text-navy-900">{selectedCustomer.address}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Business Info */}
+              {selectedCustomer.gstin && (
+                <div className="bg-purple-50 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-purple-700 mb-2">Business Information</h3>
+                  <p className="text-sm text-navy-700"><span className="font-medium">GSTIN:</span> {selectedCustomer.gstin}</p>
+                </div>
+              )}
+
+              {/* Activity Stats */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-primary-50 rounded-lg p-4 text-center">
+                  <p className="text-3xl font-bold text-primary-700">{selectedCustomer.totalPurchases}</p>
+                  <p className="text-sm text-navy-600 mt-1">Total Purchases</p>
+                </div>
+                <div className="bg-amber-50 rounded-lg p-4 text-center">
+                  <p className="text-3xl font-bold text-amber-700">{selectedCustomer.totalRepairs}</p>
+                  <p className="text-sm text-navy-600 mt-1">Total Repairs</p>
+                </div>
+              </div>
+
+              {/* Customer Since */}
+              <div className="bg-navy-50 rounded-lg p-4">
+                <p className="text-sm text-navy-600">Customer Since</p>
+                <p className="text-base font-medium text-navy-900">{new Date(selectedCustomer.createdAt).toLocaleDateString('en-IN', { dateStyle: 'long' })}</p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-4 border-t border-navy-100">
+                <button className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600">
+                  Create Repair Job
+                </button>
+                <button className="flex-1 px-4 py-2 bg-navy-100 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-200">
+                  Send WhatsApp
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

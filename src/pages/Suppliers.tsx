@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Plus, Search, Store, Phone, Mail, MapPin, IndianRupee } from 'lucide-react';
+import { Plus, Search, Store, Phone, Mail, MapPin, IndianRupee, X } from 'lucide-react';
 import { Modal, FormField, FormRow, inputClass, selectClass, SubmitButton } from '../components/Modal';
 import { Store as StoreType } from '../store/useStore';
+import { Supplier } from '../data/mockData';
 
 export function Suppliers({ store }: { store: StoreType }) {
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [form, setForm] = useState({
     code: '', name: '', phone: '', email: '', city: '', address: '', gstin: '',
     openingBalance: 0, currentBalance: 0, totalOrders: 0,
@@ -47,7 +49,11 @@ export function Suppliers({ store }: { store: StoreType }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filtered.map(supplier => (
-          <div key={supplier.id} className="bg-white rounded-xl border border-navy-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+          <div 
+            key={supplier.id} 
+            onClick={() => setSelectedSupplier(supplier)}
+            className="bg-white rounded-xl border border-navy-100 p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+          >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-lg bg-primary-100 flex items-center justify-center">
@@ -118,6 +124,100 @@ export function Suppliers({ store }: { store: StoreType }) {
           </div>
         </div>
       </Modal>
+
+      {/* Supplier Detail Modal */}
+      {selectedSupplier && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setSelectedSupplier(null)}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-navy-100 px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg bg-primary-100 flex items-center justify-center">
+                  <Store size={24} className="text-primary-600" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-navy-900">{selectedSupplier.name}</h2>
+                  <p className="text-sm text-navy-500">{selectedSupplier.code}</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedSupplier(null)} className="p-2 hover:bg-navy-100 rounded-lg">
+                <X size={20} className="text-navy-500" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Contact Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-navy-50 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Phone size={16} className="text-navy-500" />
+                    <span className="text-sm font-medium text-navy-700">Phone</span>
+                  </div>
+                  <p className="text-base text-navy-900">{selectedSupplier.phone}</p>
+                </div>
+                {selectedSupplier.email && (
+                  <div className="bg-navy-50 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Mail size={16} className="text-navy-500" />
+                      <span className="text-sm font-medium text-navy-700">Email</span>
+                    </div>
+                    <p className="text-base text-navy-900">{selectedSupplier.email}</p>
+                  </div>
+                )}
+                <div className="bg-navy-50 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MapPin size={16} className="text-navy-500" />
+                    <span className="text-sm font-medium text-navy-700">City</span>
+                  </div>
+                  <p className="text-base text-navy-900">{selectedSupplier.city}</p>
+                </div>
+                {selectedSupplier.address && (
+                  <div className="bg-navy-50 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MapPin size={16} className="text-navy-500" />
+                      <span className="text-sm font-medium text-navy-700">Address</span>
+                    </div>
+                    <p className="text-base text-navy-900">{selectedSupplier.address}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Financial Info */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-rose-50 rounded-lg p-4 text-center">
+                  <p className="text-2xl font-bold text-rose-700">₹{selectedSupplier.currentBalance.toLocaleString()}</p>
+                  <p className="text-sm text-navy-600 mt-1">Current Payable</p>
+                </div>
+                <div className="bg-amber-50 rounded-lg p-4 text-center">
+                  <p className="text-2xl font-bold text-amber-700">₹{selectedSupplier.openingBalance.toLocaleString()}</p>
+                  <p className="text-sm text-navy-600 mt-1">Opening Balance</p>
+                </div>
+                <div className="bg-primary-50 rounded-lg p-4 text-center">
+                  <p className="text-2xl font-bold text-primary-700">{selectedSupplier.totalOrders}</p>
+                  <p className="text-sm text-navy-600 mt-1">Total Orders</p>
+                </div>
+              </div>
+
+              {/* GST Info */}
+              {selectedSupplier.gstin && (
+                <div className="bg-purple-50 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-purple-700 mb-2">GST Information</h3>
+                  <p className="text-sm text-navy-700"><span className="font-medium">GSTIN:</span> {selectedSupplier.gstin}</p>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-4 border-t border-navy-100">
+                <button className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600">
+                  Create Purchase Order
+                </button>
+                <button className="flex-1 px-4 py-2 bg-navy-100 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-200">
+                  Record Payment
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
