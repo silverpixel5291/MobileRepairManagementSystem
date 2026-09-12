@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
-  Customer, Supplier, InventoryItem, RepairJob, Sale, ScrapRecord, Notification,
+  Customer, Supplier, InventoryItem, RepairJob, Sale, ScrapRecord, Notification, PurchaseOrder,
   customers as initialCustomers,
   suppliers as initialSuppliers,
   inventoryItems as initialInventory,
@@ -8,6 +8,7 @@ import {
   sales as initialSales,
   scrapRecords as initialScrap,
   notifications as initialNotifications,
+  purchaseOrders as initialPurchaseOrders,
 } from '../data/mockData';
 
 // Simple ID generator
@@ -39,6 +40,7 @@ export function useStore() {
   const [sales, setSales] = useState<Sale[]>(() => loadFromStorage('repairos_sales', initialSales));
   const [scrap, setScrap] = useState<ScrapRecord[]>(() => loadFromStorage('repairos_scrap', initialScrap));
   const [notifications, setNotifications] = useState<Notification[]>(() => loadFromStorage('repairos_notifications', initialNotifications));
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>(() => loadFromStorage('repairos_purchase_orders', initialPurchaseOrders));
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   // Persist to localStorage on changes
@@ -49,6 +51,7 @@ export function useStore() {
   useEffect(() => { saveToStorage('repairos_sales', sales); }, [sales]);
   useEffect(() => { saveToStorage('repairos_scrap', scrap); }, [scrap]);
   useEffect(() => { saveToStorage('repairos_notifications', notifications); }, [notifications]);
+  useEffect(() => { saveToStorage('repairos_purchase_orders', purchaseOrders); }, [purchaseOrders]);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ message, type });
@@ -163,6 +166,38 @@ export function useStore() {
       customer.id === customerId ? { ...customer, ...updatedData } : customer
     ));
     showToast('Customer updated successfully', 'success');
+  }, [showToast]);
+
+  const updateSupplier = useCallback((supplierId: string, updatedData: Partial<Supplier>) => {
+    setSuppliers(prev => prev.map(supplier => 
+      supplier.id === supplierId ? { ...supplier, ...updatedData } : supplier
+    ));
+    showToast('Supplier updated successfully', 'success');
+  }, [showToast]);
+
+  const addPurchaseOrder = useCallback((data: Omit<PurchaseOrder, 'id'>) => {
+    const newOrder: PurchaseOrder = {
+      ...data,
+      id: genId('po'),
+    };
+    setPurchaseOrders(prev => [newOrder, ...prev]);
+    
+    // Update supplier balance
+    setSuppliers(prev => prev.map(supplier => 
+      supplier.id === data.supplierId 
+        ? { ...supplier, currentBalance: supplier.currentBalance + data.totalAmount, totalOrders: supplier.totalOrders + 1 }
+        : supplier
+    ));
+    
+    showToast(`Purchase order created for ₹${data.totalAmount.toLocaleString()}`, 'success');
+    return newOrder;
+  }, [showToast]);
+
+  const updatePurchaseOrderStatus = useCallback((orderId: string, status: 'received' | 'pending' | 'cancelled') => {
+    setPurchaseOrders(prev => prev.map(order => 
+      order.id === orderId ? { ...order, status } : order
+    ));
+    showToast(`Purchase order status updated to ${status}`, 'success');
   }, [showToast]);
 
   const addScrap = useCallback((data: Omit<ScrapRecord, 'id' | 'createdAt'>) => {
@@ -314,9 +349,10 @@ export function useStore() {
   }, []);
 
   return {
-    customers, suppliers, inventory, repairs, sales, scrap, notifications, toast, showToast,
+    customers, suppliers, inventory, repairs, sales, scrap, notifications, purchaseOrders, toast, showToast,
     addCustomer, addSupplier, addInventory, addRepair, addSale, addScrap,
-    updateSale, deleteSale, updateCustomer,
+    updateSale, deleteSale, updateCustomer, updateSupplier,
+    addPurchaseOrder, updatePurchaseOrderStatus,
     markNotificationRead, markAllNotificationsRead, unreadNotificationCount,
     updateRepairStatus, addRepairNote,
     updateRepairInitialCheck, updateRepairDiagnosis, updateRepairActions,

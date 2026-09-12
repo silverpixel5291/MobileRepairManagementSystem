@@ -22,6 +22,7 @@ export interface Supplier {
   id: string;
   code: string;
   name: string;
+  contactPerson?: string;
   phone: string;
   email?: string;
   city: string;
@@ -30,6 +31,20 @@ export interface Supplier {
   openingBalance: number;
   currentBalance: number;
   totalOrders: number;
+  products?: string[];
+}
+
+export interface PurchaseOrder {
+  id: string;
+  supplierId: string;
+  itemName: string;
+  quantity: number;
+  purchasePrice: number;
+  totalAmount: number;
+  purchaseDate: string;
+  invoiceRef?: string;
+  currentStock: number;
+  status: 'received' | 'pending' | 'cancelled';
 }
 
 export interface InventoryItem {
@@ -192,10 +207,88 @@ export const customers: Customer[] = [
 ];
 
 export const suppliers: Supplier[] = [
-  { id: 's1', code: 'SUP-001', name: 'Samsung Parts India', phone: '+91 99887 76655', email: 'orders@samsungparts.in', city: 'Bangalore', gstin: '29AABCS1234H1ZR', openingBalance: 0, currentBalance: 45000, totalOrders: 18 },
-  { id: 's2', code: 'SUP-002', name: 'Mobile Accessories Hub', phone: '+91 88776 65544', email: 'sales@mahub.in', city: 'Delhi', gstin: '07AABCM5678J2ZS', openingBalance: 5000, currentBalance: 28500, totalOrders: 32 },
-  { id: 's3', code: 'SUP-003', name: 'Display Solutions Pvt Ltd', phone: '+91 77665 54433', email: 'info@displaysol.com', city: 'Mumbai', gstin: '27AABCD9012K3ZT', openingBalance: 12000, currentBalance: 67000, totalOrders: 8 },
-  { id: 's4', code: 'SUP-004', name: 'Battery World', phone: '+91 66554 43322', city: 'Chennai', openingBalance: 0, currentBalance: 15000, totalOrders: 14 },
+  { 
+    id: 's1', 
+    code: 'SUP-001', 
+    name: 'Samsung Parts India', 
+    contactPerson: 'Rajesh Mehta',
+    phone: '+91 99887 76655', 
+    email: 'orders@samsungparts.in', 
+    city: 'Bangalore', 
+    address: '45 Industrial Area, Phase 2, Bangalore - 560001',
+    gstin: '29AABCS1234H1ZR', 
+    openingBalance: 0, 
+    currentBalance: 45000, 
+    totalOrders: 18,
+    products: ['Samsung Display', 'Samsung Battery', 'Samsung Charging Port', 'Samsung Back Panel']
+  },
+  { 
+    id: 's2', 
+    code: 'SUP-002', 
+    name: 'Mobile Accessories Hub', 
+    contactPerson: 'Priya Sharma',
+    phone: '+91 88776 65544', 
+    email: 'sales@mahub.in', 
+    city: 'Delhi', 
+    address: '123 Karol Bagh, New Delhi - 110005',
+    gstin: '07AABCM5678J2ZS', 
+    openingBalance: 5000, 
+    currentBalance: 28500, 
+    totalOrders: 32,
+    products: ['Chargers', 'Cables', 'Screen Protectors', 'Phone Cases', 'Earphones']
+  },
+  { 
+    id: 's3', 
+    code: 'SUP-003', 
+    name: 'Display Solutions Pvt Ltd', 
+    contactPerson: 'Amit Patel',
+    phone: '+91 77665 54433', 
+    email: 'info@displaysol.com', 
+    city: 'Mumbai', 
+    address: '78 Andheri East, Mumbai - 400069',
+    gstin: '27AABCD9012K3ZT', 
+    openingBalance: 12000, 
+    currentBalance: 67000, 
+    totalOrders: 8,
+    products: ['iPhone Display', 'Android Display', 'OLED Display', 'LCD Display']
+  },
+  { 
+    id: 's4', 
+    code: 'SUP-004', 
+    name: 'Battery World', 
+    contactPerson: 'Suresh Kumar',
+    phone: '+91 66554 43322', 
+    city: 'Chennai',
+    address: '56 T Nagar, Chennai - 600017',
+    openingBalance: 0, 
+    currentBalance: 15000, 
+    totalOrders: 14,
+    products: ['iPhone Battery', 'Samsung Battery', 'OnePlus Battery', 'Universal Battery']
+  },
+];
+
+export const purchaseOrders: PurchaseOrder[] = [
+  // Samsung Parts India purchases
+  { id: 'po1', supplierId: 's1', itemName: 'Samsung Galaxy S22 Display', quantity: 5, purchasePrice: 3500, totalAmount: 17500, purchaseDate: '2026-09-01', invoiceRef: 'INV-SPI-001', currentStock: 5, status: 'received' },
+  { id: 'po2', supplierId: 's1', itemName: 'Samsung Galaxy S23 Battery', quantity: 10, purchasePrice: 1800, totalAmount: 18000, purchaseDate: '2026-08-25', invoiceRef: 'INV-SPI-002', currentStock: 8, status: 'received' },
+  { id: 'po3', supplierId: 's1', itemName: 'Samsung Charging Port', quantity: 15, purchasePrice: 450, totalAmount: 6750, purchaseDate: '2026-08-20', invoiceRef: 'INV-SPI-003', currentStock: 12, status: 'received' },
+  { id: 'po4', supplierId: 's1', itemName: 'Samsung Back Panel', quantity: 8, purchasePrice: 1200, totalAmount: 9600, purchaseDate: '2026-09-05', invoiceRef: 'INV-SPI-004', currentStock: 0, status: 'pending' },
+  
+  // Mobile Accessories Hub purchases
+  { id: 'po5', supplierId: 's2', itemName: 'Type-C Fast Charger', quantity: 50, purchasePrice: 250, totalAmount: 12500, purchaseDate: '2026-09-03', invoiceRef: 'INV-MAH-001', currentStock: 25, status: 'received' },
+  { id: 'po6', supplierId: 's2', itemName: 'USB-C Cable (1m)', quantity: 100, purchasePrice: 80, totalAmount: 8000, purchaseDate: '2026-08-28', invoiceRef: 'INV-MAH-002', currentStock: 8, status: 'received' },
+  { id: 'po7', supplierId: 's2', itemName: 'Screen Protector (Universal)', quantity: 200, purchasePrice: 25, totalAmount: 5000, purchaseDate: '2026-08-15', invoiceRef: 'INV-MAH-003', currentStock: 50, status: 'received' },
+  { id: 'po8', supplierId: 's2', itemName: 'Phone Cases (Mixed)', quantity: 30, purchasePrice: 150, totalAmount: 4500, purchaseDate: '2026-09-06', invoiceRef: 'INV-MAH-004', currentStock: 30, status: 'pending' },
+  
+  // Display Solutions purchases
+  { id: 'po9', supplierId: 's3', itemName: 'iPhone 13 Display', quantity: 3, purchasePrice: 8500, totalAmount: 25500, purchaseDate: '2026-09-02', invoiceRef: 'INV-DS-001', currentStock: 2, status: 'received' },
+  { id: 'po10', supplierId: 's3', itemName: 'iPhone 14 Display', quantity: 2, purchasePrice: 12000, totalAmount: 24000, purchaseDate: '2026-08-30', invoiceRef: 'INV-DS-002', currentStock: 0, status: 'received' },
+  { id: 'po11', supplierId: 's3', itemName: 'Samsung A54 Display', quantity: 5, purchasePrice: 4500, totalAmount: 22500, purchaseDate: '2026-09-04', invoiceRef: 'INV-DS-003', currentStock: 5, status: 'pending' },
+  
+  // Battery World purchases
+  { id: 'po12', supplierId: 's4', itemName: 'iPhone 13 Battery', quantity: 10, purchasePrice: 1800, totalAmount: 18000, purchaseDate: '2026-09-01', invoiceRef: 'INV-BW-001', currentStock: 2, status: 'received' },
+  { id: 'po13', supplierId: 's4', itemName: 'Samsung S22 Battery', quantity: 8, purchasePrice: 2200, totalAmount: 17600, purchaseDate: '2026-08-22', invoiceRef: 'INV-BW-002', currentStock: 6, status: 'received' },
+  { id: 'po14', supplierId: 's4', itemName: 'OnePlus Nord Battery', quantity: 5, purchasePrice: 1500, totalAmount: 7500, purchaseDate: '2026-09-05', invoiceRef: 'INV-BW-003', currentStock: 0, status: 'pending' },
 ];
 
 export const inventoryItems: InventoryItem[] = [
