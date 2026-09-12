@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
-  Customer, Supplier, InventoryItem, RepairJob, Sale, ScrapRecord, Notification, PurchaseOrder,
+  Customer, Supplier, InventoryItem, RepairJob, Sale, ScrapRecord, Notification, PurchaseOrder, ScrapCategory,
   customers as initialCustomers,
   suppliers as initialSuppliers,
   inventoryItems as initialInventory,
@@ -9,6 +9,7 @@ import {
   scrapRecords as initialScrap,
   notifications as initialNotifications,
   purchaseOrders as initialPurchaseOrders,
+  scrapCategories as initialScrapCategories,
 } from '../data/mockData';
 
 // Simple ID generator
@@ -39,6 +40,7 @@ export function useStore() {
   const [repairs, setRepairs] = useState<RepairJob[]>(() => loadFromStorage('repairos_repairs', initialRepairs));
   const [sales, setSales] = useState<Sale[]>(() => loadFromStorage('repairos_sales', initialSales));
   const [scrap, setScrap] = useState<ScrapRecord[]>(() => loadFromStorage('repairos_scrap', initialScrap));
+  const [scrapCategories, setScrapCategories] = useState<ScrapCategory[]>(() => loadFromStorage('repairos_scrap_categories', initialScrapCategories));
   const [notifications, setNotifications] = useState<Notification[]>(() => loadFromStorage('repairos_notifications', initialNotifications));
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>(() => loadFromStorage('repairos_purchase_orders', initialPurchaseOrders));
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -50,6 +52,7 @@ export function useStore() {
   useEffect(() => { saveToStorage('repairos_repairs', repairs); }, [repairs]);
   useEffect(() => { saveToStorage('repairos_sales', sales); }, [sales]);
   useEffect(() => { saveToStorage('repairos_scrap', scrap); }, [scrap]);
+  useEffect(() => { saveToStorage('repairos_scrap_categories', scrapCategories); }, [scrapCategories]);
   useEffect(() => { saveToStorage('repairos_notifications', notifications); }, [notifications]);
   useEffect(() => { saveToStorage('repairos_purchase_orders', purchaseOrders); }, [purchaseOrders]);
 
@@ -211,6 +214,62 @@ export function useStore() {
     return newScrap;
   }, [showToast]);
 
+  const addScrapCategory = useCallback((data: Omit<ScrapCategory, 'id' | 'createdAt'>) => {
+    const newCategory: ScrapCategory = {
+      ...data,
+      id: genId('cat'),
+      createdAt: new Date().toISOString().split('T')[0],
+    };
+    setScrapCategories(prev => [newCategory, ...prev]);
+    showToast(`Scrap category "${data.name}" created`);
+    return newCategory;
+  }, [showToast]);
+
+  const updateScrapCategory = useCallback((categoryId: string, updatedData: Partial<ScrapCategory>) => {
+    setScrapCategories(prev => prev.map(cat => 
+      cat.id === categoryId ? { ...cat, ...updatedData } : cat
+    ));
+    showToast('Scrap category updated', 'success');
+  }, [showToast]);
+
+  const deleteScrapCategory = useCallback((categoryId: string) => {
+    const category = scrapCategories.find(c => c.id === categoryId);
+    if (category?.isDefault) {
+      showToast('Cannot delete default categories', 'error');
+      return;
+    }
+    setScrapCategories(prev => prev.filter(c => c.id !== categoryId));
+    showToast('Scrap category deleted', 'success');
+  }, [scrapCategories, showToast]);
+
+  const updateRepairLocation = useCallback((repairId: string, rack: string, box: string, compartment: string | undefined, user: string) => {
+    setRepairs(prev => prev.map(repair => {
+      if (repair.id === repairId) {
+        const newLocation = {
+          rack,
+          box,
+          compartment,
+          updatedAt: new Date().toISOString(),
+          updatedBy: user,
+        };
+        
+        const locationHistory = repair.locationHistory || [];
+        if (repair.currentLocation) {
+          locationHistory.push(repair.currentLocation);
+        }
+        
+        return {
+          ...repair,
+          currentLocation: newLocation,
+          locationHistory,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return repair;
+    }));
+    showToast('Repair location updated', 'success');
+  }, [showToast]);
+
   const markNotificationRead = useCallback((id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   }, []);
@@ -349,10 +408,12 @@ export function useStore() {
   }, []);
 
   return {
-    customers, suppliers, inventory, repairs, sales, scrap, notifications, purchaseOrders, toast, showToast,
+    customers, suppliers, inventory, repairs, sales, scrap, scrapCategories, notifications, purchaseOrders, toast, showToast,
     addCustomer, addSupplier, addInventory, addRepair, addSale, addScrap,
     updateSale, deleteSale, updateCustomer, updateSupplier,
     addPurchaseOrder, updatePurchaseOrderStatus,
+    addScrapCategory, updateScrapCategory, deleteScrapCategory,
+    updateRepairLocation,
     markNotificationRead, markAllNotificationsRead, unreadNotificationCount,
     updateRepairStatus, addRepairNote,
     updateRepairInitialCheck, updateRepairDiagnosis, updateRepairActions,

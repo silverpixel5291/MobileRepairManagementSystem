@@ -112,6 +112,14 @@ export interface RepairPhoto {
   note?: string;
 }
 
+export interface RepairLocation {
+  rack: string;
+  box: string;
+  compartment?: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
 export interface RepairJob {
   id: string;
   repairNumber: string;
@@ -133,6 +141,10 @@ export interface RepairJob {
   createdAt: string;
   updatedAt: string;
   timeline: RepairTimelineEntry[];
+  
+  // Location tracking
+  currentLocation?: RepairLocation;
+  locationHistory?: RepairLocation[];
   
   // Workspace data
   initialCheck?: InitialCheckItem[];
@@ -177,9 +189,18 @@ export interface SaleItem {
   total: number;
 }
 
+export interface ScrapCategory {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  isDefault?: boolean;
+}
+
 export interface ScrapRecord {
   id: string;
   itemName: string;
+  categoryId: string;
   category: string;
   quantity: number;
   reason: string;
@@ -452,10 +473,19 @@ export const sales: Sale[] = [
   { id: 'sale3', invoiceNumber: 'INV-2026-0158', customerId: 'c6', customerName: 'TechFix Solutions', items: [{ inventoryId: 'i9', name: 'Screen Protector (Universal)', quantity: 10, unitPrice: 99, total: 990 }, { inventoryId: 'i7', name: 'USB-C Cable (1m)', quantity: 5, unitPrice: 199, total: 995 }], subtotal: 1985, discount: 185, taxableAmount: 1800, cgst: 162, sgst: 162, igst: 0, totalAmount: 2124, paymentMethod: 'bank_transfer', createdAt: '2026-09-06T14:45:00' },
 ];
 
+export const scrapCategories: ScrapCategory[] = [
+  { id: 'cat1', name: 'Dead Motherboard', description: 'Motherboard completely non-functional', createdAt: '2026-01-01', isDefault: true },
+  { id: 'cat2', name: 'Damaged Display', description: 'Cracked or non-functional display', createdAt: '2026-01-01', isDefault: true },
+  { id: 'cat3', name: 'Water Damaged', description: 'Devices damaged by water exposure', createdAt: '2026-01-01', isDefault: true },
+  { id: 'cat4', name: 'Broken Frame', description: 'Physical frame damage beyond repair', createdAt: '2026-01-01', isDefault: true },
+  { id: 'cat5', name: 'Non-Repairable', description: 'Devices that cannot be economically repaired', createdAt: '2026-01-01', isDefault: true },
+  { id: 'cat6', name: 'E-Waste', description: 'Electronic waste for recycling', createdAt: '2026-01-01', isDefault: true },
+];
+
 export const scrapRecords: ScrapRecord[] = [
-  { id: 'sc1', itemName: 'Samsung Galaxy J7 (Dead Motherboard)', category: 'mobile', quantity: 1, reason: 'Motherboard dead, uneconomical to repair', recoveryValue: 350, createdAt: '2026-09-01' },
-  { id: 'sc2', itemName: 'Cracked iPhone 8 Display', category: 'spare_part', quantity: 2, reason: 'Too damaged for resale', recoveryValue: 200, createdAt: '2026-09-03' },
-  { id: 'sc3', itemName: 'Damaged Packaging Boxes', category: 'other', quantity: 15, reason: 'Water damage in storage', recoveryValue: 50, createdAt: '2026-09-05' },
+  { id: 'sc1', itemName: 'Samsung Galaxy J7', categoryId: 'cat1', category: 'Dead Motherboard', quantity: 1, reason: 'Motherboard dead, uneconomical to repair', recoveryValue: 350, createdAt: '2026-09-01' },
+  { id: 'sc2', itemName: 'iPhone 8 Display', categoryId: 'cat2', category: 'Damaged Display', quantity: 2, reason: 'Too damaged for resale', recoveryValue: 200, createdAt: '2026-09-03' },
+  { id: 'sc3', itemName: 'Packaging Boxes', categoryId: 'cat6', category: 'E-Waste', quantity: 15, reason: 'Water damage in storage', recoveryValue: 50, createdAt: '2026-09-05' },
 ];
 
 export const notifications: Notification[] = [
