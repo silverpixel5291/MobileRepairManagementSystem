@@ -9,15 +9,33 @@ export function Sales({ store }: { store: Store }) {
   const [itemSearch, setItemSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+  const [dateFilter, setDateFilter] = useState<'today' | 'week' | 'month' | 'all'>('all');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [form, setForm] = useState({
     customerId: '', customerName: '', items: [] as { inventoryId: string; name: string; quantity: number; unitPrice: number; total: number }[],
     discount: 0, paymentMethod: 'cash' as PaymentMethod,
   });
 
-  const filtered = store.sales.filter(s =>
-    s.invoiceNumber.toLowerCase().includes(search.toLowerCase()) ||
-    s.customerName.toLowerCase().includes(search.toLowerCase())
-  );
+  // Date filtering logic
+  const now = new Date();
+  const filtered = store.sales.filter(s => {
+    const saleDate = new Date(s.createdAt);
+    const matchesSearch = s.invoiceNumber.toLowerCase().includes(search.toLowerCase()) ||
+      s.customerName.toLowerCase().includes(search.toLowerCase());
+    
+    if (!matchesSearch) return false;
+    
+    if (dateFilter === 'today') {
+      return saleDate.toDateString() === now.toDateString();
+    } else if (dateFilter === 'week') {
+      const weekAgo = new Date(now);
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      return saleDate >= weekAgo;
+    } else if (dateFilter === 'month') {
+      return saleDate.getMonth() === now.getMonth() && saleDate.getFullYear() === now.getFullYear();
+    }
+    return true;
+  });
 
   const totalRevenue = store.sales.reduce((sum, s) => sum + s.totalAmount, 0);
   const totalTax = store.sales.reduce((sum, s) => sum + s.cgst + s.sgst + s.igst, 0);
@@ -59,30 +77,172 @@ export function Sales({ store }: { store: Store }) {
 
   const availableItems = store.inventory.filter(i => i.status === 'available' && i.quantity > 0);
 
+  // Export functionality
+  const handleExport = () => {
+    const headers = ['Invoice Number', 'Customer', 'Items', 'Subtotal', 'Discount', 'Taxable Amount', 'CGST', 'SGST', 'IGST', 'Total', 'Payment Method', 'Date'];
+    const csvData = filtered.map(sale => [
+      sale.invoiceNumber,
+      sale.customerName,
+      sale.items.length,
+      sale.subtotal,
+      sale.discount,
+      sale.taxableAmount,
+      sale.cgst.toFixed(2),
+      sale.sgst.toFixed(2),
+      sale.igst.toFixed(2),
+      sale.totalAmount.toFixed(2),
+      sale.paymentMethod,
+      new Date(sale.createdAt).toLocaleDateString('en-IN')
+    ]);
+    
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => row.join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `sales_${dateFilter}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    store.showToast('Sales exported successfully', 'success');
+  };
+
+  // Delete invoice
+  const handleDelete = (saleId: string) => {
+    store.deleteSale(saleId);
+    setShowDeleteConfirm(null);
+    setSelectedSale(null);
+  };
+
+  // Print invoice
+  const handlePrint = () => {
+    if (!selectedSale) return;
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Invoice ${selectedSale.invoiceNumber}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .invoice-title { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+          .invoice-number { font-size: 16px; color: #666; }
+          .info-section { margin: 20px 0; }
+          .info-label { font-weight: bold; color: #333; }
+          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+          th { background-color: #f5f5f5; }
+          .total-section { margin-top: 20px; text-align: right; }
+          .total-row { margin: 5px 0; }
+          .grand-total { font-size: 18px; font-weight: bold; color: #2563eb; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="invoice-title">INVOICE</div>
+          <div class="invoice-number">${selectedSale.invoiceNumber}</div>
+        </div>
+        
+        <div class="info-section">
+          <div><span class="info-label">Customer:</span> ${selectedSale.customerName}</div>
+          <div><span class="info-label">Date:</span> ${new Date(selectedSale.createdAt).toLocaleDateString('en-IN', { dateStyle: 'long' })}</div>
+          <div><span class="info-label">Payment Method:</span> ${selectedSale.paymentMethod}</div>
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Quantity</th>
+              <th>Unit Price</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${selectedSale.items.map(item => `
+              <tr>
+                <td>${item.name}</td>
+                <td>${item.quantity}</td>
+                <td>₹${item.unitPrice.toLocaleString()}</td>
+                <td>₹${item.total.toLocaleString()}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        
+        <div class="total-section">
+          <div class="total-row">Subtotal: ₹${selectedSale.subtotal.toLocaleString()}</div>
+          ${selectedSale.discount > 0 ? `<div class="total-row">Discount: ₹${selectedSale.discount.toLocaleString()}</div>` : ''}
+          <div class="total-row">Taxable Amount: ₹${selectedSale.taxableAmount.toLocaleString()}</div>
+          <div class="total-row">CGST: ₹${selectedSale.cgst.toFixed(2)}</div>
+          <div class="total-row">SGST: ₹${selectedSale.sgst.toFixed(2)}</div>
+          ${selectedSale.igst > 0 ? `<div class="total-row">IGST: ₹${selectedSale.igst.toFixed(2)}</div>` : ''}
+          <div class="total-row grand-total">Total: ₹${selectedSale.totalAmount.toFixed(2)}</div>
+        </div>
+        
+        <div style="margin-top: 40px; text-align: center; color: #666; font-size: 12px;">
+          <p>Thank you for your business!</p>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  };
+  
   return (
     <div className="max-w-7xl mx-auto space-y-4 pb-16 lg:pb-0">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-navy-900">Sales</h1>
-          <p className="text-sm text-navy-500">{store.sales.length} invoices • ₹{totalRevenue.toLocaleString()} total</p>
+          <p className="text-sm text-navy-500">{filtered.length} of {store.sales.length} invoices • ₹{totalRevenue.toLocaleString()} total</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1.5 px-3 py-2 bg-white border border-navy-200 rounded-lg text-sm text-navy-700 hover:bg-navy-50"><Download size={16} />Export</button>
+          <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-2 bg-white border border-navy-200 rounded-lg text-sm text-navy-700 hover:bg-navy-50"><Download size={16} />Export</button>
           <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 shadow-sm"><Plus size={16} />New Sale</button>
         </div>
       </div>
-
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-navy-100 p-4 shadow-sm"><p className="text-xs text-navy-500">Total Revenue</p><p className="text-xl font-bold text-navy-900 mt-1">₹{totalRevenue.toLocaleString()}</p></div>
         <div className="bg-white rounded-xl border border-navy-100 p-4 shadow-sm"><p className="text-xs text-navy-500">GST Collected</p><p className="text-xl font-bold text-navy-900 mt-1">₹{totalTax.toLocaleString()}</p></div>
-        <div className="bg-white rounded-xl border border-navy-100 p-4 shadow-sm"><p className="text-xs text-navy-500">Invoices</p><p className="text-xl font-bold text-navy-900 mt-1">{store.sales.length}</p></div>
-        <div className="bg-white rounded-xl border border-navy-100 p-4 shadow-sm"><p className="text-xs text-navy-500">Avg. Order Value</p><p className="text-xl font-bold text-navy-900 mt-1">₹{store.sales.length > 0 ? Math.round(totalRevenue / store.sales.length).toLocaleString() : 0}</p></div>
+        <div className="bg-white rounded-xl border border-navy-100 p-4 shadow-sm"><p className="text-xs text-navy-500">Invoices</p><p className="text-xl font-bold text-navy-900 mt-1">{filtered.length}</p></div>
+        <div className="bg-white rounded-xl border border-navy-100 p-4 shadow-sm"><p className="text-xs text-navy-500">Avg. Order Value</p><p className="text-xl font-bold text-navy-900 mt-1">₹{filtered.length > 0 ? Math.round(totalRevenue / filtered.length).toLocaleString() : 0}</p></div>
       </div>
 
+      {/* Date Filter */}
       <div className="bg-white rounded-xl border border-navy-100 p-4 shadow-sm">
-        <div className="flex items-center gap-2 bg-navy-50 rounded-lg px-3 py-2">
-          <Search size={16} className="text-navy-400" />
-          <input type="text" placeholder="Search by invoice number or customer..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent border-none outline-none text-sm text-navy-700 placeholder-navy-400 w-full" />
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1 flex items-center gap-2 bg-navy-50 rounded-lg px-3 py-2">
+            <Search size={16} className="text-navy-400" />
+            <input type="text" placeholder="Search by invoice number or customer..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent border-none outline-none text-sm text-navy-700 placeholder-navy-400 w-full" />
+          </div>
+          <div className="flex items-center gap-1 bg-navy-50 rounded-lg p-1">
+            {(['today', 'week', 'month', 'all'] as const).map(period => (
+              <button
+                key={period}
+                onClick={() => setDateFilter(period)}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  dateFilter === period ? 'bg-primary-500 text-white' : 'text-navy-600 hover:bg-navy-100'
+                }`}
+              >
+                {period === 'today' ? 'Today' : period === 'week' ? 'This Week' : period === 'month' ? 'This Month' : 'All'}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -360,13 +520,36 @@ export function Sales({ store }: { store: Store }) {
 
               {/* Actions */}
               <div className="flex gap-2 pt-4 border-t border-navy-100">
-                <button className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600">
+                <button onClick={handlePrint} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600">
                   Print Invoice
                 </button>
-                <button className="flex-1 px-4 py-2 bg-navy-100 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-200">
+                <button onClick={() => store.showToast('WhatsApp integration coming soon', 'info')} className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600">
                   Send via WhatsApp
                 </button>
+                <button onClick={() => setShowDeleteConfirm(selectedSale.id)} className="px-4 py-2 bg-rose-500 text-white rounded-lg text-sm font-medium hover:bg-rose-600">
+                  Delete
+                </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50" onClick={() => setShowDeleteConfirm(null)}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-navy-900 mb-2">Delete Invoice</h3>
+            <p className="text-sm text-navy-600 mb-6">
+              Are you sure you want to delete this invoice? This action cannot be undone and will restore inventory quantities.
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => setShowDeleteConfirm(null)} className="flex-1 px-4 py-2 bg-navy-100 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-200">
+                Cancel
+              </button>
+              <button onClick={() => handleDelete(showDeleteConfirm)} className="flex-1 px-4 py-2 bg-rose-500 text-white rounded-lg text-sm font-medium hover:bg-rose-600">
+                Delete Invoice
+              </button>
             </div>
           </div>
         </div>

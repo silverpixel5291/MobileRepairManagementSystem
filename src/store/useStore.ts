@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   Customer, Supplier, InventoryItem, RepairJob, Sale, ScrapRecord, Notification,
   customers as initialCustomers,
@@ -13,15 +13,42 @@ import {
 // Simple ID generator
 const genId = (prefix: string) => `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
 
+// LocalStorage helpers
+const loadFromStorage = <T>(key: string, defaultValue: T): T => {
+  try {
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : defaultValue;
+  } catch {
+    return defaultValue;
+  }
+};
+
+const saveToStorage = <T>(key: string, value: T): void => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.error('Failed to save to localStorage:', error);
+  }
+};
+
 export function useStore() {
-  const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
-  const [suppliers, setSuppliers] = useState<Supplier[]>(initialSuppliers);
-  const [inventory, setInventory] = useState<InventoryItem[]>(initialInventory);
-  const [repairs, setRepairs] = useState<RepairJob[]>(initialRepairs);
-  const [sales, setSales] = useState<Sale[]>(initialSales);
-  const [scrap, setScrap] = useState<ScrapRecord[]>(initialScrap);
-  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
+  const [customers, setCustomers] = useState<Customer[]>(() => loadFromStorage('repairos_customers', initialCustomers));
+  const [suppliers, setSuppliers] = useState<Supplier[]>(() => loadFromStorage('repairos_suppliers', initialSuppliers));
+  const [inventory, setInventory] = useState<InventoryItem[]>(() => loadFromStorage('repairos_inventory', initialInventory));
+  const [repairs, setRepairs] = useState<RepairJob[]>(() => loadFromStorage('repairos_repairs', initialRepairs));
+  const [sales, setSales] = useState<Sale[]>(() => loadFromStorage('repairos_sales', initialSales));
+  const [scrap, setScrap] = useState<ScrapRecord[]>(() => loadFromStorage('repairos_scrap', initialScrap));
+  const [notifications, setNotifications] = useState<Notification[]>(() => loadFromStorage('repairos_notifications', initialNotifications));
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+  // Persist to localStorage on changes
+  useEffect(() => { saveToStorage('repairos_customers', customers); }, [customers]);
+  useEffect(() => { saveToStorage('repairos_suppliers', suppliers); }, [suppliers]);
+  useEffect(() => { saveToStorage('repairos_inventory', inventory); }, [inventory]);
+  useEffect(() => { saveToStorage('repairos_repairs', repairs); }, [repairs]);
+  useEffect(() => { saveToStorage('repairos_sales', sales); }, [sales]);
+  useEffect(() => { saveToStorage('repairos_scrap', scrap); }, [scrap]);
+  useEffect(() => { saveToStorage('repairos_notifications', notifications); }, [notifications]);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ message, type });
@@ -106,6 +133,37 @@ export function useStore() {
     showToast(`Sale ${newSale.invoiceNumber} created — ₹${newSale.totalAmount.toLocaleString()}`);
     return newSale;
   }, [sales.length, showToast]);
+
+  const updateSale = useCallback((saleId: string, updatedData: Partial<Sale>) => {
+    setSales(prev => prev.map(sale => 
+      sale.id === saleId ? { ...sale, ...updatedData } : sale
+    ));
+    showToast('Invoice updated successfully', 'success');
+  }, [showToast]);
+
+  const deleteSale = useCallback((saleId: string) => {
+    const sale = sales.find(s => s.id === saleId);
+    if (!sale) return;
+    
+    // Restore inventory quantities
+    sale.items.forEach(item => {
+      setInventory(prev => prev.map(inv =>
+        inv.id === item.inventoryId
+          ? { ...inv, quantity: inv.quantity + item.quantity, status: 'available' }
+          : inv
+      ));
+    });
+    
+    setSales(prev => prev.filter(s => s.id !== saleId));
+    showToast(`Invoice ${sale.invoiceNumber} deleted`, 'success');
+  }, [sales, showToast]);
+
+  const updateCustomer = useCallback((customerId: string, updatedData: Partial<Customer>) => {
+    setCustomers(prev => prev.map(customer => 
+      customer.id === customerId ? { ...customer, ...updatedData } : customer
+    ));
+    showToast('Customer updated successfully', 'success');
+  }, [showToast]);
 
   const addScrap = useCallback((data: Omit<ScrapRecord, 'id' | 'createdAt'>) => {
     const newScrap: ScrapRecord = {
@@ -258,6 +316,7 @@ export function useStore() {
   return {
     customers, suppliers, inventory, repairs, sales, scrap, notifications, toast, showToast,
     addCustomer, addSupplier, addInventory, addRepair, addSale, addScrap,
+    updateSale, deleteSale, updateCustomer,
     markNotificationRead, markAllNotificationsRead, unreadNotificationCount,
     updateRepairStatus, addRepairNote,
     updateRepairInitialCheck, updateRepairDiagnosis, updateRepairActions,

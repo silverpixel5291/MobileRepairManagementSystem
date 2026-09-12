@@ -9,6 +9,8 @@ export function Customers({ store }: { store: Store }) {
   const [typeFilter, setTypeFilter] = useState('all');
   const [showAdd, setShowAdd] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [showEdit, setShowEdit] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [form, setForm] = useState({ name: '', phone: '', email: '', address: '', gstin: '', type: 'individual' as 'individual' | 'business', birthday: '' });
 
   const filtered = store.customers.filter(c => {
@@ -22,6 +24,37 @@ export function Customers({ store }: { store: Store }) {
     store.addCustomer(form);
     setForm({ name: '', phone: '', email: '', address: '', gstin: '', type: 'individual', birthday: '' });
     setShowAdd(false);
+  };
+
+  const handleEdit = () => {
+    if (!selectedCustomer || !form.name || !form.phone) return;
+    store.updateCustomer(selectedCustomer.id, form);
+    setSelectedCustomer({ ...selectedCustomer, ...form });
+    setShowEdit(false);
+  };
+
+  const openEditModal = () => {
+    if (!selectedCustomer) return;
+    setForm({
+      name: selectedCustomer.name,
+      phone: selectedCustomer.phone,
+      email: selectedCustomer.email || '',
+      address: selectedCustomer.address || '',
+      gstin: selectedCustomer.gstin || '',
+      type: selectedCustomer.type,
+      birthday: selectedCustomer.birthday || '',
+    });
+    setShowEdit(true);
+  };
+
+  // Get customer history
+  const getCustomerHistory = () => {
+    if (!selectedCustomer) return { sales: [], repairs: [] };
+    
+    const sales = store.sales.filter(s => s.customerId === selectedCustomer.id);
+    const repairs = store.repairs.filter(r => r.customerId === selectedCustomer.id);
+    
+    return { sales, repairs };
   };
 
   return (
@@ -218,17 +251,147 @@ export function Customers({ store }: { store: Store }) {
 
               {/* Actions */}
               <div className="flex gap-2 pt-4 border-t border-navy-100">
-                <button className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600">
-                  Create Repair Job
+                <button onClick={openEditModal} className="flex-1 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600">
+                  Edit Customer
                 </button>
-                <button className="flex-1 px-4 py-2 bg-navy-100 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-200">
-                  Send WhatsApp
+                <button onClick={() => setShowHistory(true)} className="flex-1 px-4 py-2 bg-navy-100 text-navy-700 rounded-lg text-sm font-medium hover:bg-navy-200">
+                  View History
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Edit Customer Modal */}
+      <Modal open={showEdit} onClose={() => setShowEdit(false)} title="Edit Customer" subtitle="Update customer information">
+        <div className="space-y-4">
+          <FormRow>
+            <FormField label="Full Name" required>
+              <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Enter customer name" className={inputClass} />
+            </FormField>
+            <FormField label="Phone Number" required>
+              <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="+91 XXXXX XXXXX" className={inputClass} />
+            </FormField>
+          </FormRow>
+          <FormRow>
+            <FormField label="Email">
+              <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="email@example.com (optional)" className={inputClass} />
+            </FormField>
+            <FormField label="Birthday">
+              <input type="date" value={form.birthday} onChange={e => setForm({ ...form, birthday: e.target.value })} className={inputClass} />
+            </FormField>
+          </FormRow>
+          <FormRow>
+            <FormField label="Customer Type">
+              <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value as 'individual' | 'business' })} className={selectClass}>
+                <option value="individual">Individual</option>
+                <option value="business">Business</option>
+              </select>
+            </FormField>
+            <div></div>
+          </FormRow>
+          <FormField label="Address">
+            <input type="text" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} placeholder="Full address" className={inputClass} />
+          </FormField>
+          {form.type === 'business' && (
+            <FormField label="GSTIN" hint="Required for B2B invoices">
+              <input type="text" value={form.gstin} onChange={e => setForm({ ...form, gstin: e.target.value })} placeholder="29AABCM1234F1ZP" className={inputClass} />
+            </FormField>
+          )}
+          <div className="flex justify-end gap-2 pt-3 border-t border-navy-100">
+            <SubmitButton variant="secondary" onClick={() => setShowEdit(false)}>Cancel</SubmitButton>
+            <SubmitButton onClick={handleEdit}>Save Changes</SubmitButton>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Customer History Modal */}
+      {showHistory && selectedCustomer && (() => {
+        const { sales, repairs } = getCustomerHistory();
+        
+        return (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50" onClick={() => setShowHistory(false)}>
+            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="sticky top-0 bg-white border-b border-navy-100 px-6 py-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-navy-900">Customer History</h2>
+                  <p className="text-sm text-navy-500">{selectedCustomer.name}</p>
+                </div>
+                <button onClick={() => setShowHistory(false)} className="p-2 hover:bg-navy-100 rounded-lg">
+                  <X size={20} className="text-navy-500" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Purchases/Invoices */}
+                <div>
+                  <h3 className="text-lg font-bold text-navy-900 mb-4">Purchases & Invoices ({sales.length})</h3>
+                  {sales.length > 0 ? (
+                    <div className="border border-navy-100 rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-navy-50">
+                          <tr>
+                            <th className="text-left px-4 py-2 font-medium text-navy-600">Invoice</th>
+                            <th className="text-right px-4 py-2 font-medium text-navy-600">Amount</th>
+                            <th className="text-left px-4 py-2 font-medium text-navy-600">Payment</th>
+                            <th className="text-right px-4 py-2 font-medium text-navy-600">Date</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-navy-50">
+                          {sales.map(sale => (
+                            <tr key={sale.id} className="hover:bg-navy-50/50">
+                              <td className="px-4 py-3 font-medium text-navy-800">{sale.invoiceNumber}</td>
+                              <td className="px-4 py-3 text-right font-semibold text-navy-800">₹{sale.totalAmount.toFixed(2)}</td>
+                              <td className="px-4 py-3 text-navy-600 capitalize">{sale.paymentMethod.replace('_', ' ')}</td>
+                              <td className="px-4 py-3 text-right text-navy-500">{new Date(sale.createdAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-navy-500 text-center py-8">No purchases found</p>
+                  )}
+                </div>
+
+                {/* Repair Jobs */}
+                <div>
+                  <h3 className="text-lg font-bold text-navy-900 mb-4">Repair Jobs ({repairs.length})</h3>
+                  {repairs.length > 0 ? (
+                    <div className="space-y-3">
+                      {repairs.map(repair => (
+                        <div key={repair.id} className="bg-navy-50 rounded-lg p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <p className="text-sm font-bold text-navy-900">{repair.repairNumber}</p>
+                              <p className="text-xs text-navy-500">{repair.deviceName}</p>
+                            </div>
+                            <span className={`text-xs px-2 py-1 rounded-full ${
+                              repair.status === 'delivered' ? 'bg-mint-100 text-mint-700' :
+                              repair.status === 'working' ? 'bg-amber-100 text-amber-700' :
+                              'bg-navy-100 text-navy-600'
+                            }`}>
+                              {repair.status.replace(/_/g, ' ')}
+                            </span>
+                          </div>
+                          <p className="text-sm text-navy-700 mb-2">{repair.problem}</p>
+                          <div className="flex items-center gap-4 text-xs text-navy-500">
+                            <span>Estimate: ₹{repair.estimate?.toLocaleString() || '0'}</span>
+                            <span>Created: {new Date(repair.createdAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-navy-500 text-center py-8">No repair jobs found</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
