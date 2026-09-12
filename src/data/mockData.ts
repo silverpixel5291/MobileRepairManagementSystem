@@ -59,6 +59,44 @@ export interface InventoryItem {
   lastMovement: string;
 }
 
+export interface InitialCheckItem {
+  component: string;
+  status: 'pass' | 'fail' | 'issue' | 'na' | null;
+}
+
+export interface DiagnosisData {
+  problems: string[];
+  rootCause: string;
+  observations: string;
+  result: string;
+}
+
+export interface RepairAction {
+  action: string;
+  selected: boolean;
+}
+
+export interface PartRequest {
+  id: string;
+  partId: string;
+  partName: string;
+  compatibleModel?: string;
+  availableQuantity: number;
+  rack?: string;
+  box?: string;
+  deviceId?: string;
+  quantityRequired: number;
+  status: 'requested' | 'approved' | 'received';
+}
+
+export interface RepairPhoto {
+  id: string;
+  type: 'before' | 'during' | 'after';
+  url: string;
+  timestamp: string;
+  note?: string;
+}
+
 export interface RepairJob {
   id: string;
   repairNumber: string;
@@ -68,6 +106,8 @@ export interface RepairJob {
   customerPhone: string;
   deviceId?: string;
   deviceName?: string;
+  deviceBrand?: string;
+  deviceModel?: string;
   problem: string;
   priority: Priority;
   status: RepairStatus;
@@ -78,6 +118,14 @@ export interface RepairJob {
   createdAt: string;
   updatedAt: string;
   timeline: RepairTimelineEntry[];
+  
+  // Workspace data
+  initialCheck?: InitialCheckItem[];
+  diagnosis?: DiagnosisData;
+  repairActions?: RepairAction[];
+  partsRequested?: PartRequest[];
+  photos?: RepairPhoto[];
+  technicianNotes?: string;
 }
 
 export interface RepairTimelineEntry {
@@ -167,10 +215,37 @@ export const repairJobs: RepairJob[] = [
   {
     id: 'r1', repairNumber: 'RPR-2026-0042', trackingToken: 'trk_x7y8z9w0',
     customerId: 'c2', customerName: 'Priya Sharma', customerPhone: '+91 87654 32109',
-    deviceId: 'i6', deviceName: 'OnePlus Nord CE 3',
+    deviceId: 'i6', deviceName: 'OnePlus Nord CE 3', deviceBrand: 'OnePlus', deviceModel: 'Nord CE 3',
     problem: 'Display not responding after water damage', priority: 'high',
     status: 'working', estimate: 4500, assignedTo: 'tech1', assignedToName: 'Vikram Singh',
     createdAt: '2026-09-03T10:30:00', updatedAt: '2026-09-06T14:20:00',
+    initialCheck: [
+      { component: 'Display', status: 'fail' },
+      { component: 'Touch', status: 'fail' },
+      { component: 'Camera', status: 'pass' },
+      { component: 'Speaker', status: 'pass' },
+      { component: 'Microphone', status: 'pass' },
+      { component: 'Charging', status: 'pass' },
+      { component: 'Buttons', status: 'pass' },
+      { component: 'Network/SIM', status: 'pass' },
+      { component: 'Wi-Fi/Bluetooth', status: 'pass' },
+      { component: 'Battery', status: 'pass' },
+    ],
+    diagnosis: {
+      problems: ['Water damage', 'Display failure'],
+      rootCause: 'Water ingress caused display connector corrosion',
+      observations: 'Visible water damage indicators triggered, display connector shows corrosion',
+      result: 'Display replacement required'
+    },
+    repairActions: [
+      { action: 'Display replacement', selected: true },
+      { action: 'Cleaning', selected: true },
+      { action: 'Battery replacement', selected: false },
+      { action: 'Software reset', selected: false },
+    ],
+    photos: [
+      { id: 'p1', type: 'before', url: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400', timestamp: '2026-09-03T14:00:00', note: 'Water damage visible' },
+    ],
     timeline: [
       { id: 't1', status: 'received', message: 'Device received at counter', user: 'Admin', timestamp: '2026-09-03T10:30:00', isCustomerVisible: true },
       { id: 't2', status: 'diagnosing', message: 'Diagnosing water damage extent', user: 'Vikram Singh', timestamp: '2026-09-03T14:00:00', isCustomerVisible: true },
@@ -182,10 +257,46 @@ export const repairJobs: RepairJob[] = [
   {
     id: 'r2', repairNumber: 'RPR-2026-0043', trackingToken: 'trk_a1b2c3d4',
     customerId: 'c4', customerName: 'Amit Patel', customerPhone: '+91 65432 10987',
-    deviceName: 'Samsung Galaxy A54',
+    deviceName: 'Samsung Galaxy A54', deviceBrand: 'Samsung', deviceModel: 'Galaxy A54',
     problem: 'Battery draining very fast, phone heats up', priority: 'medium',
     status: 'waiting_parts', estimate: 2200, assignedTo: 'tech2', assignedToName: 'Ravi Kumar',
     createdAt: '2026-09-04T09:00:00', updatedAt: '2026-09-06T16:30:00',
+    initialCheck: [
+      { component: 'Display', status: 'pass' },
+      { component: 'Touch', status: 'pass' },
+      { component: 'Camera', status: 'pass' },
+      { component: 'Speaker', status: 'pass' },
+      { component: 'Microphone', status: 'pass' },
+      { component: 'Charging', status: 'pass' },
+      { component: 'Buttons', status: 'pass' },
+      { component: 'Network/SIM', status: 'pass' },
+      { component: 'Wi-Fi/Bluetooth', status: 'pass' },
+      { component: 'Battery', status: 'issue' },
+    ],
+    diagnosis: {
+      problems: ['Battery degradation'],
+      rootCause: 'Battery health degraded to 62%',
+      observations: 'Battery cycles: 847, health: 62%, phone heats during charging',
+      result: 'Battery replacement required'
+    },
+    repairActions: [
+      { action: 'Battery replacement', selected: true },
+      { action: 'Charging-port repair', selected: false },
+      { action: 'Software reset', selected: false },
+    ],
+    partsRequested: [
+      {
+        id: 'pr1',
+        partId: 'i5',
+        partName: 'iPhone 13 Battery',
+        compatibleModel: 'Galaxy A54',
+        availableQuantity: 2,
+        rack: 'R-04',
+        box: 'B-04',
+        quantityRequired: 1,
+        status: 'requested'
+      }
+    ],
     timeline: [
       { id: 't6', status: 'received', message: 'Device received', user: 'Admin', timestamp: '2026-09-04T09:00:00', isCustomerVisible: true },
       { id: 't7', status: 'diagnosing', message: 'Battery health check - degraded to 62%', user: 'Ravi Kumar', timestamp: '2026-09-04T15:00:00', isCustomerVisible: true },
@@ -197,7 +308,7 @@ export const repairJobs: RepairJob[] = [
   {
     id: 'r3', repairNumber: 'RPR-2026-0044', trackingToken: 'trk_e5f6g7h8',
     customerId: 'c5', customerName: 'Sneha Reddy', customerPhone: '+91 54321 09876',
-    deviceName: 'iPhone 12',
+    deviceName: 'iPhone 12', deviceBrand: 'Apple', deviceModel: 'iPhone 12',
     problem: 'Back glass cracked, camera lens scratched', priority: 'low',
     status: 'estimate_generated', estimate: 3500,
     createdAt: '2026-09-05T11:30:00', updatedAt: '2026-09-06T10:00:00',
@@ -210,7 +321,7 @@ export const repairJobs: RepairJob[] = [
   {
     id: 'r4', repairNumber: 'RPR-2026-0045', trackingToken: 'trk_i9j0k1l2',
     customerId: 'c1', customerName: 'Rajesh Kumar', customerPhone: '+91 98765 43210',
-    deviceName: 'Realme Narzo 50',
+    deviceName: 'Realme Narzo 50', deviceBrand: 'Realme', deviceModel: 'Narzo 50',
     problem: 'Charging port loose, not charging properly', priority: 'medium',
     status: 'quality_check', estimate: 1500, assignedTo: 'tech1', assignedToName: 'Vikram Singh',
     createdAt: '2026-09-02T08:00:00', updatedAt: '2026-09-06T17:00:00',
@@ -226,7 +337,7 @@ export const repairJobs: RepairJob[] = [
   {
     id: 'r5', repairNumber: 'RPR-2026-0046', trackingToken: 'trk_m3n4o5p6',
     customerId: 'c2', customerName: 'Priya Sharma', customerPhone: '+91 87654 32109',
-    deviceName: 'iPhone 11',
+    deviceName: 'iPhone 11', deviceBrand: 'Apple', deviceModel: 'iPhone 11',
     problem: 'Speaker not working during calls', priority: 'urgent',
     status: 'ready_pickup', estimate: 1800, assignedTo: 'tech2', assignedToName: 'Ravi Kumar',
     createdAt: '2026-09-01T14:00:00', updatedAt: '2026-09-06T11:00:00',

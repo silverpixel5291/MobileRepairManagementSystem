@@ -173,11 +173,95 @@ export function useStore() {
     showToast('Note added successfully', 'success');
   }, [showToast]);
 
+  const updateRepairInitialCheck = useCallback((repairId: string, initialCheck: any[]) => {
+    setRepairs(prev => prev.map(repair => {
+      if (repair.id === repairId) {
+        return {
+          ...repair,
+          initialCheck,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return repair;
+    }));
+  }, []);
+
+  const updateRepairDiagnosis = useCallback((repairId: string, diagnosis: any) => {
+    setRepairs(prev => prev.map(repair => {
+      if (repair.id === repairId) {
+        return {
+          ...repair,
+          diagnosis,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return repair;
+    }));
+  }, []);
+
+  const updateRepairActions = useCallback((repairId: string, repairActions: any[]) => {
+    setRepairs(prev => prev.map(repair => {
+      if (repair.id === repairId) {
+        return {
+          ...repair,
+          repairActions,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return repair;
+    }));
+  }, []);
+
+  const addPartRequest = useCallback((repairId: string, partRequest: any) => {
+    setRepairs(prev => prev.map(repair => {
+      if (repair.id === repairId) {
+        const partsRequested = repair.partsRequested || [];
+        return {
+          ...repair,
+          partsRequested: [...partsRequested, { ...partRequest, id: genId('pr') }],
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return repair;
+    }));
+    showToast('Part request added', 'success');
+  }, [showToast]);
+
+  const addRepairPhoto = useCallback((repairId: string, photo: any) => {
+    setRepairs(prev => prev.map(repair => {
+      if (repair.id === repairId) {
+        const photos = repair.photos || [];
+        return {
+          ...repair,
+          photos: [...photos, { ...photo, id: genId('p') }],
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return repair;
+    }));
+    showToast('Photo added', 'success');
+  }, [showToast]);
+
+  const updateTechnicianNotes = useCallback((repairId: string, notes: string) => {
+    setRepairs(prev => prev.map(repair => {
+      if (repair.id === repairId) {
+        return {
+          ...repair,
+          technicianNotes: notes,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return repair;
+    }));
+  }, []);
+
   return {
     customers, suppliers, inventory, repairs, sales, scrap, notifications, toast, showToast,
     addCustomer, addSupplier, addInventory, addRepair, addSale, addScrap,
     markNotificationRead, markAllNotificationsRead, unreadNotificationCount,
     updateRepairStatus, addRepairNote,
+    updateRepairInitialCheck, updateRepairDiagnosis, updateRepairActions,
+    addPartRequest, addRepairPhoto, updateTechnicianNotes,
   };
 }
 
